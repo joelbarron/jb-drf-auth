@@ -15,7 +15,11 @@ class OtpCodeRequestSerializer(serializers.Serializer):
 
     def validate(self, data):
         if not data.get("email") and not data.get("phone"):
-            raise serializers.ValidationError("Debes proporcionar un email o un telefono.")
+            raise serializers.ValidationError("Debes proporcionar un email o un teléfono.")
+        if data.get("channel") == "sms" and not data.get("phone"):
+            raise serializers.ValidationError("Debes proporcionar un teléfono para SMS.")
+        if data.get("channel") == "email" and not data.get("email"):
+            raise serializers.ValidationError("Debes proporcionar un email para correo.")
         return data
 
 
@@ -28,5 +32,5 @@ class OtpCodeVerifySerializer(serializers.Serializer):
 
     def validate(self, data):
         if not data.get("email") and not data.get("phone"):
-            raise serializers.ValidationError("Debes proporcionar un email o un telefono.")
+            raise serializers.ValidationError("Debes proporcionar un email o un teléfono.")
         return data

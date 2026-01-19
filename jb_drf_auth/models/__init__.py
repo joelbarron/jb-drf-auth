@@ -2,6 +2,7 @@ from .base import (
     AbstractJbDevice,
     AbstractJbOtpCode,
     AbstractJbProfile,
+    AbstractJbSmsLog,
     AbstractJbUser,
     AbstractSafeDeleteModel,
     AbstractTimeStampedModel,
@@ -13,5 +14,6 @@ __all__ = [
     "AbstractJbProfile",
     "AbstractJbDevice",
     "AbstractJbOtpCode",
+    "AbstractJbSmsLog",
     "AbstractSafeDeleteModel",
 ]

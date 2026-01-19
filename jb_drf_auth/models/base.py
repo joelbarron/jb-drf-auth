@@ -169,6 +169,7 @@ class AbstractJbOtpCode(AbstractSafeDeleteModel, AbstractTimeStampedModel):
     valid_until = models.DateTimeField(blank=False, null=False)
     is_used = models.BooleanField(default=False)
     attempts = models.PositiveSmallIntegerField(default=0)
+    last_sent_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -180,3 +181,19 @@ class AbstractJbOtpCode(AbstractSafeDeleteModel, AbstractTimeStampedModel):
 
     def __str__(self):
         return f"{self.channel} OTP for {self.email or self.phone}: {self.code}"
+
+
+class AbstractJbSmsLog(AbstractTimeStampedModel):
+    STATUS_CHOICES = (
+        ("sent", "Sent"),
+        ("failed", "Failed"),
+    )
+
+    phone = models.CharField(max_length=30)
+    message = models.TextField()
+    provider = models.CharField(max_length=255)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    error_message = models.TextField(blank=True, null=True)
+
+    class Meta:
+        abstract = True

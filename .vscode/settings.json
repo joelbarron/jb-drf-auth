@@ -47,6 +47,7 @@
         "anymail",
         "Anymail",
         "cffi",
+        "cooldown",
         "corsheaders",
         "django",
         "djangorestframework",

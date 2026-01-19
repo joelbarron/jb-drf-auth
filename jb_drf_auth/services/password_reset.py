@@ -25,8 +25,8 @@ class PasswordResetService:
         reset_url = f"{frontend_url}/reset-password/?uid={uid}&token={token}"
 
         send_mail(
-            subject="Restablece tu contrasena",
-            message=f"Hola, restablece tu contrasena haciendo clic aqui:\n{reset_url}",
+            subject="Restablece tu contraseña",
+            message=f"Hola, restablece tu contraseña haciendo clic aqui:\n{reset_url}",
             from_email=get_setting("DEFAULT_FROM_EMAIL"),
             recipient_list=[user.email],
             fail_silently=False,

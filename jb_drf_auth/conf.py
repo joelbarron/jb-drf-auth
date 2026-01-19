@@ -11,7 +11,9 @@ DEFAULTS = {
     "DEFAULT_FROM_EMAIL": None,
     "ADMIN_BOOTSTRAP_TOKEN": None,
     "OTP_LENGTH": 6,
-    "OTP_VALID_MINUTES": 10,
+    "OTP_TTL_SECONDS": 300,
+    "OTP_MAX_ATTEMPTS": 5,
+    "OTP_RESEND_COOLDOWN_SECONDS": 60,
     "PROFILE_ROLE_CHOICES": (
         ("USER", "Usuario"),
         ("COMMERCE", "Comercio"),
@@ -26,12 +28,24 @@ DEFAULTS = {
     "DEFAULT_PROFILE_ROLE": "USER",
     "PROFILE_ID_CLAIM": "profile_id",
     "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
+    "SMS_PROVIDER": "jb_drf_auth.providers.aws_sns.AwsSnsSmsProvider",
+    "SMS_SENDER_ID": None,
+    "SMS_TYPE": "Transactional",
+    "SMS_OTP_MESSAGE": "Tu codigo es {code}. Expira en {minutes} minutos.",
+    "SMS_LOG_MODEL": None,  # optional: "accounts.SmsLog"
+    "PHONE_DEFAULT_COUNTRY_CODE": None,
+    "PHONE_MIN_LENGTH": 10,
+    "PHONE_MAX_LENGTH": 15,
 }
 
 PREFIX = "JB_DRF_AUTH_"
+ROOT_SETTING = "JB_DRF_AUTH"
 
 
 def get_setting(name: str):
+    root = getattr(settings, ROOT_SETTING, None)
+    if isinstance(root, dict) and name in root:
+        return root[name]
     prefixed_name = f"{PREFIX}{name}"
     if hasattr(settings, prefixed_name):
         return getattr(settings, prefixed_name)
