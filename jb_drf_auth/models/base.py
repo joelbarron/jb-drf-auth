@@ -197,3 +197,22 @@ class AbstractJbSmsLog(AbstractTimeStampedModel):
 
     class Meta:
         abstract = True
+
+
+class AbstractJbEmailLog(AbstractTimeStampedModel):
+    STATUS_CHOICES = (
+        ("sent", "Sent"),
+        ("failed", "Failed"),
+    )
+
+    to_email = models.EmailField()
+    subject = models.CharField(max_length=255)
+    text_body = models.TextField()
+    html_body = models.TextField(blank=True, null=True)
+    provider = models.CharField(max_length=255)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    error_message = models.TextField(blank=True, null=True)
+    template_name = models.CharField(max_length=100, blank=True, null=True)
+
+    class Meta:
+        abstract = True

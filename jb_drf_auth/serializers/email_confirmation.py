@@ -50,4 +50,4 @@ class ResendConfirmationEmailSerializer(serializers.Serializer):
 
     def save(self):
         user = self.context["user"]
-        EmailConfirmationService.send_verification_email(user)
+        return EmailConfirmationService.send_verification_email(user, raise_on_fail=False)

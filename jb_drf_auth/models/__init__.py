@@ -1,5 +1,6 @@
 from .base import (
     AbstractJbDevice,
+    AbstractJbEmailLog,
     AbstractJbOtpCode,
     AbstractJbProfile,
     AbstractJbSmsLog,
@@ -13,6 +14,7 @@ __all__ = [
     "AbstractJbUser",
     "AbstractJbProfile",
     "AbstractJbDevice",
+    "AbstractJbEmailLog",
     "AbstractJbOtpCode",
     "AbstractJbSmsLog",
     "AbstractSafeDeleteModel",

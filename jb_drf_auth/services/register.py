@@ -49,5 +49,5 @@ class RegisterService:
             is_default=True,
         )
 
-        EmailConfirmationService.send_verification_email(user)
-        return user
+        email_sent = EmailConfirmationService.send_verification_email(user, raise_on_fail=False)
+        return user, email_sent

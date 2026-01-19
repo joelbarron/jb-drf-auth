@@ -64,6 +64,12 @@ def get_sms_provider():
     return provider_cls()
 
 
+def get_email_provider():
+    provider_path = get_setting("EMAIL_PROVIDER")
+    provider_cls = import_string(provider_path)
+    return provider_cls()
+
+
 def get_sms_log_model_cls():
     model_path = get_setting("SMS_LOG_MODEL")
     if not model_path:
@@ -74,6 +80,21 @@ def get_sms_log_model_cls():
     except ValueError as exc:
         raise RuntimeError(
             "Invalid JB_DRF_AUTH_SMS_LOG_MODEL format. Expected 'app_label.ModelName'"
+        ) from exc
+
+    return apps.get_model(app_label, model_name)
+
+
+def get_email_log_model_cls():
+    model_path = get_setting("EMAIL_LOG_MODEL")
+    if not model_path:
+        raise RuntimeError("Missing setting: JB_DRF_AUTH_EMAIL_LOG_MODEL = 'app_label.ModelName'")
+
+    try:
+        app_label, model_name = model_path.split(".")
+    except ValueError as exc:
+        raise RuntimeError(
+            "Invalid JB_DRF_AUTH_EMAIL_LOG_MODEL format. Expected 'app_label.ModelName'"
         ) from exc
 
     return apps.get_model(app_label, model_name)
@@ -115,3 +136,37 @@ def get_sms_message(code: str, minutes: int) -> str:
     if not message.isascii():
         return f"Tu codigo es {code}. Expira en {minutes} minutos."
     return message
+
+
+def get_email_template(name: str):
+    from jb_drf_auth.email_templates import DEFAULT_EMAIL_TEMPLATES
+
+    templates = get_setting("EMAIL_TEMPLATES")
+    if isinstance(templates, dict) and name in templates:
+        return templates[name]
+    return DEFAULT_EMAIL_TEMPLATES.get(name, {})
+
+
+def render_email_template(name: str, context: dict):
+    template = get_email_template(name)
+    subject = template.get("subject", "")
+    text_body = template.get("text", "")
+    html_body = template.get("html")
+
+    if callable(subject):
+        subject = subject(context)
+    else:
+        subject = subject.format(**context)
+
+    if callable(text_body):
+        text_body = text_body(context)
+    else:
+        text_body = text_body.format(**context)
+
+    if html_body is not None:
+        if callable(html_body):
+            html_body = html_body(context)
+        else:
+            html_body = html_body.format(**context)
+
+    return subject, text_body, html_body

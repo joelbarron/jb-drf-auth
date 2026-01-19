@@ -7,7 +7,9 @@ class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def save(self):
-        PasswordResetService.send_reset_email(self.validated_data["email"])
+        return PasswordResetService.send_reset_email(
+            self.validated_data["email"], raise_on_fail=False
+        )
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):

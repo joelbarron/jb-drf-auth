@@ -18,7 +18,7 @@ class RegisterSerializer(serializers.Serializer):
     role = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def create(self, validated_data):
-        return RegisterService.register_user(
+        user, email_sent = RegisterService.register_user(
             email=validated_data["email"],
             username=validated_data.get("username"),
             password=validated_data["password"],
@@ -30,3 +30,5 @@ class RegisterSerializer(serializers.Serializer):
             gender=validated_data["gender"],
             role=validated_data.get("role"),
         )
+        self.email_sent = email_sent
+        return user

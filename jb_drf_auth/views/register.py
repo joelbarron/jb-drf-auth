@@ -15,6 +15,15 @@ class RegisterView(CreateAPIView):
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
+            email_sent = getattr(serializer, "email_sent", True)
+            if not email_sent:
+                return Response(
+                    {
+                        "detail": "Usuario creado, pero el correo no fue enviado.",
+                        "email_sent": False,
+                    },
+                    status=status.HTTP_201_CREATED,
+                )
             return Response(
                 {"detail": "Usuario creado. Revisa tu correo para verificar tu cuenta."},
                 status=status.HTTP_201_CREATED,
