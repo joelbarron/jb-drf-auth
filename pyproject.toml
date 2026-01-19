@@ -1,0 +1,21 @@
+[project]
+name = "jb-drf-auth"
+version = "0.1.0"
+description = "Reusable auth + profiles foundations for Django/DRF projects"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "Django>=5.0",
+  "djangorestframework>=3.15",
+  "djangorestframework-simplejwt>=5.3",
+  "drf-extra-fields>=3.7",
+  "django-filter>=24.2",
+  "django-safedelete>=1.4,<2.0",
+  "argon2-cffi~=25.1.0",
+  "bcrypt~=4.0.1",
+  "Pillow>=10.0",
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

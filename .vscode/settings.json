@@ -1,0 +1,59 @@
+{
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/*.pyo": true
+    },
+    "search.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/*.pyo": true
+    },
+    "files.watcherExclude": {
+        "**/__pycache__/**": true,
+        "**/*.pyc": true,
+        "**/*.pyo": true
+    },
+    "workbench.colorTheme": "Hack The Box",
+
+    "python.defaultInterpreterPath": ".venv/bin/python",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.useLibraryCodeForTypes": true,
+
+    "python.formatting.provider": "none",
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit",
+        "source.organizeImports": "explicit"
+    },
+
+    "ruff.fixOnSave": true,
+    "ruff.organizeImports": true,
+
+    "errorLens.enabled": true,
+    "errorLens.delay": 200,
+
+    "emmet.includeLanguages": {
+        "django-html": "html"
+    },
+
+    "python.analysis.importFormat": "absolute",
+    "cSpell.words": [
+        "anymail",
+        "Anymail",
+        "cffi",
+        "corsheaders",
+        "django",
+        "djangorestframework",
+        "filterset",
+        "safedelete",
+        "setuptools",
+        "simplejwt",
+        "viewsets"
+    ]
+}

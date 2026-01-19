@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "charliermarsh.ruff",
+    "batisteo.vscode-django",
+    "usernamehw.errorlens",
+    // "ms-azuretools.vscode-docker",
+    "redhat.vscode-yaml",
+    "openai.codex"
+  ]
+}

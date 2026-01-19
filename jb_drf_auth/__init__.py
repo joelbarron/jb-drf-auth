@@ -1,0 +1,1 @@
+default_app_config = "jb_drf_auth.apps.JbDrfAuthConfig"
