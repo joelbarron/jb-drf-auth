@@ -2,7 +2,12 @@
     "files.exclude": {
         "**/__pycache__": true,
         "**/*.pyc": true,
-        "**/*.pyo": true
+        "**/*.pyo": true,
+        ".venv": true,
+        "dist": true,
+        "jb_drf_auth.egg-info": true,
+        ".gitignore": true,
+        "LICENSE": true
     },
     "search.exclude": {
         "**/__pycache__": true,
