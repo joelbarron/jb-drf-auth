@@ -71,19 +71,52 @@ JB_DRF_AUTH_OTP_RESEND_COOLDOWN_SECONDS = 60
 JB_DRF_AUTH_PHONE_DEFAULT_COUNTRY_CODE = "52"  # required only if clients don't send E.164 (+countrycode)
 ```
 
-You can also configure everything using a single dict:
+You can also configure everything using a single dict (copy/paste ready):
 
 ```python
+AUTH_USER_MODEL = "authentication.User"
+
 JB_DRF_AUTH = {
     "PROFILE_MODEL": "authentication.Profile",
     "DEVICE_MODEL": "authentication.Device",
     "OTP_MODEL": "authentication.OtpCode",
+    "SMS_LOG_MODEL": "authentication.SmsLog",
     "EMAIL_LOG_MODEL": "authentication.EmailLog",
     "FRONTEND_URL": "https://your-frontend",
     "DEFAULT_FROM_EMAIL": "no-reply@your-domain.com",
+    "AUTHENTICATION_TYPE": "email",  # "email", "username", "both"
+    "CLIENT_CHOICES": ("web", "mobile"),
+    "AUTH_SINGLE_SESSION_ON_MOBILE": False,
+    "ADMIN_BOOTSTRAP_TOKEN": "super-secret",
+    "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
+    "PROFILE_ROLE_CHOICES": (
+        ("USER", "Usuario"),
+        ("COMMERCE", "Comercio"),
+        ("ADMIN", "Admin"),
+    ),
+    "PROFILE_GENDER_CHOICES": (
+        ("MALE", "Masculino"),
+        ("FEMALE", "Femenino"),
+        ("OTHER", "Otro"),
+        ("PREFER_NOT_TO_SAY", "Prefiero no decirlo"),
+    ),
+    "DEFAULT_PROFILE_ROLE": "USER",
+    "PROFILE_ID_CLAIM": "profile_id",
     "SMS_PROVIDER": "jb_drf_auth.providers.aws_sns.AwsSnsSmsProvider",
+    "SMS_SENDER_ID": "YourBrand",
+    "SMS_TYPE": "Transactional",
+    "SMS_OTP_MESSAGE": "Tu codigo es {code}. Expira en {minutes} minutos.",
+    "OTP_LENGTH": 6,
     "OTP_TTL_SECONDS": 300,
+    "OTP_MAX_ATTEMPTS": 5,
+    "OTP_RESEND_COOLDOWN_SECONDS": 60,
+    "PHONE_DEFAULT_COUNTRY_CODE": "52",
+    "PHONE_MIN_LENGTH": 10,
+    "PHONE_MAX_LENGTH": 15,
+    "EMAIL_PROVIDER": "jb_drf_auth.providers.django_email.DjangoEmailProvider",
+    "EMAIL_TEMPLATES": {},
 }
+```
 
 Email template example:
 
@@ -100,7 +133,6 @@ JB_DRF_AUTH_EMAIL_TEMPLATES = {
         "html": "<p>Hola {user_email},</p><a href=\"{reset_url}\">Restablecer</a>",
     },
 }
-```
 ```
 
 ---
