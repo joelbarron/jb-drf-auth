@@ -7,6 +7,7 @@ from jb_drf_auth.services.otp import OtpService
 from jb_drf_auth.services.password_reset import PasswordResetService
 from jb_drf_auth.services.register import RegisterService
 from jb_drf_auth.services.tokens import TokensService
+from jb_drf_auth.services.user_settings import UserSettingsService
 
 CLIENT_CHOICES = get_setting("CLIENT_CHOICES")
 
@@ -20,4 +21,5 @@ __all__ = [
     "PasswordResetService",
     "RegisterService",
     "TokensService",
+    "UserSettingsService",
 ]

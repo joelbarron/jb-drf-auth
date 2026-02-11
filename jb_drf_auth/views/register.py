@@ -2,13 +2,16 @@ from rest_framework import status
 from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from django.utils.translation import gettext as _
 
 from jb_drf_auth.serializers import RegisterSerializer
+from jb_drf_auth.throttling import RegisterIPThrottle, RegisterIdentityThrottle
 
 
 class RegisterView(CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [RegisterIPThrottle, RegisterIdentityThrottle]
 
     def create(self, request, *args, **kwargs):
         try:
@@ -19,13 +22,13 @@ class RegisterView(CreateAPIView):
             if not email_sent:
                 return Response(
                     {
-                        "detail": "Usuario creado, pero el correo no fue enviado.",
+                        "detail": _("Usuario creado, pero el correo no fue enviado."),
                         "email_sent": False,
                     },
                     status=status.HTTP_201_CREATED,
                 )
             return Response(
-                {"detail": "Usuario creado. Revisa tu correo para verificar tu cuenta."},
+                {"detail": _("Usuario creado. Revisa tu correo para verificar tu cuenta.")},
                 status=status.HTTP_201_CREATED,
             )
         except ValueError as exc:
@@ -33,6 +36,6 @@ class RegisterView(CreateAPIView):
         except Exception as exc:
             print(exc)
             return Response(
-                {"detail": f"Error al crear el usuario. {str(exc)}"},
+                {"detail": _("Error al crear el usuario. %(error)s") % {"error": str(exc)}},
                 status=status.HTTP_409_CONFLICT,
             )

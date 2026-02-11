@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -20,7 +21,7 @@ class CreateSuperUserView(APIView):
         data = serializer.validated_data
 
         if User.objects.filter(email=data["email"]).exists():
-            return Response({"detail": "El usuario ya existe."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": _("El usuario ya existe.")}, status=status.HTTP_409_CONFLICT)
 
         user = User.objects.create_superuser(
             email=data["email"],
@@ -36,13 +37,13 @@ class CreateSuperUserView(APIView):
             is_default=True,
             gender="OTHER",
             first_name="Super",
-            middle_name="Admin",
-            last_name="User",
+            last_name_1="Admin",
+            last_name_2="User",
         )
 
         return Response(
             {
-                "detail": "Superusuario creado.",
+                "detail": _("Superusuario creado."),
                 "id": user.id,
                 "email": user.email,
                 "is_superuser": user.is_superuser,
@@ -61,7 +62,7 @@ class CreateStaffUserView(APIView):
         data = serializer.validated_data
 
         if User.objects.filter(email=data["email"]).exists():
-            return Response({"detail": "El usuario ya existe."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": _("El usuario ya existe.")}, status=status.HTTP_409_CONFLICT)
 
         user = User.objects.create_user(
             email=data["email"],
@@ -78,13 +79,13 @@ class CreateStaffUserView(APIView):
             is_default=True,
             gender="OTHER",
             first_name="Staff",
-            middle_name="Admin",
-            last_name="User",
+            last_name_1="Admin",
+            last_name_2="User",
         )
 
         return Response(
             {
-                "detail": "Usuario staff creado.",
+                "detail": _("Usuario staff creado."),
                 "id": user.id,
                 "email": user.email,
                 "is_superuser": user.is_superuser,

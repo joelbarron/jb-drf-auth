@@ -14,6 +14,7 @@ from jb_drf_auth.serializers.profile import ProfileSerializer
 from jb_drf_auth.serializers.register import RegisterSerializer
 from jb_drf_auth.serializers.user import UserSerializer
 from jb_drf_auth.serializers.user_admin import UserAdminCreateSerializer
+from jb_drf_auth.serializers.user_update import UserUpdateSerializer
 
 __all__ = [
     "DevicePayloadSerializer",
@@ -30,5 +31,6 @@ __all__ = [
     "ProfileSerializer",
     "RegisterSerializer",
     "UserSerializer",
+    "UserUpdateSerializer",
     "UserAdminCreateSerializer",
 ]

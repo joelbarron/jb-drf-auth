@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils.translation import gettext_lazy as _
 
 from jb_drf_auth.conf import get_setting
 from jb_drf_auth.serializers.device import DevicePayloadSerializer
@@ -15,11 +16,11 @@ class OtpCodeRequestSerializer(serializers.Serializer):
 
     def validate(self, data):
         if not data.get("email") and not data.get("phone"):
-            raise serializers.ValidationError("Debes proporcionar un email o un teléfono.")
+            raise serializers.ValidationError(_("Debes proporcionar un email o un teléfono."))
         if data.get("channel") == "sms" and not data.get("phone"):
-            raise serializers.ValidationError("Debes proporcionar un teléfono para SMS.")
+            raise serializers.ValidationError(_("Debes proporcionar un teléfono para SMS."))
         if data.get("channel") == "email" and not data.get("email"):
-            raise serializers.ValidationError("Debes proporcionar un email para correo.")
+            raise serializers.ValidationError(_("Debes proporcionar un email para correo."))
         return data
 
 
@@ -32,5 +33,5 @@ class OtpCodeVerifySerializer(serializers.Serializer):
 
     def validate(self, data):
         if not data.get("email") and not data.get("phone"):
-            raise serializers.ValidationError("Debes proporcionar un email o un teléfono.")
+            raise serializers.ValidationError(_("Debes proporcionar un email o un teléfono."))
         return data

@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.utils.translation import gettext as _
 
 from jb_drf_auth.services.me import MeService
 from jb_drf_auth.utils import get_device_model_cls
@@ -10,14 +11,14 @@ class ClientService:
         if client.lower() == "mobile":
             if not device_data:
                 raise serializers.ValidationError(
-                    {"device": "Datos del dispositivo requeridos para cliente movil."}
+                    {"device": _("Datos del dispositivo requeridos para cliente movil.")}
                 )
 
             try:
                 device_model = get_device_model_cls()
             except RuntimeError:
                 raise serializers.ValidationError(
-                    {"device": "Configura JB_DRF_AUTH_DEVICE_MODEL para registrar dispositivos."}
+                    {"device": _("Configura JB_DRF_AUTH_DEVICE_MODEL para registrar dispositivos.")}
                 )
 
             device_model.objects.create(

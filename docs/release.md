@@ -18,6 +18,90 @@ Follow these steps **exactly** every time.
 
 ---
 
+## Automated release workflow (recommended)
+
+Use workflow: `.github/workflows/release-automation.yml`
+
+Trigger it manually from GitHub Actions with:
+
+- `release_type`: `rc` or `stable`
+- `version`: `X.Y.Z`
+- `rc_number`: only for `rc`
+- `target_branch`: default `main`
+
+What it does automatically:
+
+1. Validates inputs.
+2. Bumps `pyproject.toml` version.
+3. Creates commit and tag.
+4. Pushes commit/tag to target branch.
+5. For `stable`, creates GitHub Release with generated notes.
+
+Then existing publish workflows run automatically:
+
+- RC tag `vX.Y.Z-rcN` -> `Publish to TestPyPI`
+- Stable GitHub Release `vX.Y.Z` -> `Publish to PyPI`
+
+---
+
+## Automated flow when your changes are ready
+
+Use this process after your code is merged into `main`.
+
+1. Confirm CI is green (`lint + tests + build`).
+2. Open GitHub -> `Actions` -> `Release Automation`.
+3. Click `Run workflow`.
+4. Choose release mode:
+
+For pre-release (TestPyPI):
+
+- `release_type`: `rc`
+- `version`: e.g. `0.2.0`
+- `rc_number`: e.g. `1`
+- `target_branch`: `main`
+
+Expected result:
+
+- `pyproject.toml` bumped to `0.2.0rc1`
+- auto commit created
+- tag `v0.2.0-rc1` pushed
+- `Publish to TestPyPI` workflow triggered
+
+For stable release (PyPI):
+
+- `release_type`: `stable`
+- `version`: e.g. `0.2.0`
+- `target_branch`: `main`
+
+Expected result:
+
+- `pyproject.toml` bumped to `0.2.0`
+- auto commit created
+- tag `v0.2.0` pushed
+- GitHub Release created automatically
+- `Publish to PyPI` workflow triggered
+
+Post-release validation:
+
+1. Verify publish workflow is green in GitHub Actions.
+2. Verify the version exists in TestPyPI/PyPI.
+3. Install and smoke test:
+
+```bash
+# RC
+pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple jb-drf-auth==0.2.0rc1
+
+# Stable
+pip install -U jb-drf-auth==0.2.0
+```
+
+Versioning rule:
+
+- Never reuse a published version.
+- If a release fails or needs fixes, publish a new version (`rc2`, `rc3`, or next patch).
+
+---
+
 ## Local validation (REQUIRED)
 
 Run these commands locally (inside a virtual environment) **before any release**:

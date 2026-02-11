@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
+from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from jb_drf_auth.services.email_confirmation import EmailConfirmationService
@@ -18,10 +19,10 @@ class EmailConfirmationSerializer(serializers.Serializer):
             uid = urlsafe_base64_decode(data["uid"]).decode()
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            raise serializers.ValidationError("Enlace invalido.")
+            raise serializers.ValidationError(_("Enlace invalido."))
 
         if not default_token_generator.check_token(user, data["token"]):
-            raise serializers.ValidationError("El token es invalido o ha expirado.")
+            raise serializers.ValidationError(_("El token es invalido o ha expirado."))
         data["user"] = user
         return data
 
@@ -40,10 +41,10 @@ class ResendConfirmationEmailSerializer(serializers.Serializer):
         try:
             user = User.objects.get(email=value)
         except User.DoesNotExist:
-            raise serializers.ValidationError("No existe un usuario con este correo.")
+            raise serializers.ValidationError(_("No existe un usuario con este correo."))
 
         if user.is_active:
-            raise serializers.ValidationError("El correo ya fue verificado.")
+            raise serializers.ValidationError(_("El correo ya fue verificado."))
 
         self.context["user"] = user
         return value

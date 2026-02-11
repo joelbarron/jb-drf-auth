@@ -1,7 +1,9 @@
 from rest_framework import status
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.utils.translation import gettext as _
 
 from jb_drf_auth.services.me import MeService
 
@@ -17,16 +19,13 @@ class MeView(APIView):
         device_token = request.query_params.get("device_token")
 
         if not profile_id:
-            return Response(
-                {"detail": "Falta perfil en el token"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise AuthenticationFailed(_("Falta perfil en el token"))
 
         if getattr(user, "deleted", None) or not getattr(user, "is_active", True) or not getattr(
             user, "is_verified", True
         ):
             return Response(
-                {"detail": "Usuario no valido, eliminado, inactivo o no verificado"},
+                {"detail": _("Usuario no valido, eliminado, inactivo o no verificado")},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
