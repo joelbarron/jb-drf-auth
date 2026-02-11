@@ -15,11 +15,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: "pyproject.toml"
 
       - name: Install tools
         run: |
           python -m pip install --upgrade pip
-          pip install build twine
+          pip install build twine ruff
+          pip install -e .
+
+      - name: Lint (ruff)
+        run: |
+          ruff check --select F,E9 jb_drf_auth
+
+      - name: Run tests
+        env:
+          DJANGO_SETTINGS_MODULE: jb_drf_auth.tests.settings
+        run: |
+          python -m unittest discover -s jb_drf_auth/tests -p "test_*.py"
 
       - name: Build package
         run: |

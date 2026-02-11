@@ -1,13 +1,14 @@
 import secrets
 
 from django.contrib.auth import get_user_model
+from django.utils.translation import gettext_lazy as _
 from rest_framework import permissions
 
 from jb_drf_auth.conf import get_setting
 
 
 class BootstrapTokenOrAdmin(permissions.BasePermission):
-    message = "Bootstrap token required."
+    message = _("Bootstrap token required.")
 
     def has_permission(self, request, view):
         user = request.user

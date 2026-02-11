@@ -5,10 +5,12 @@ from rest_framework.views import APIView
 
 from jb_drf_auth.serializers import BasicLoginSerializer, SwitchProfileSerializer
 from jb_drf_auth.services.login import LoginService
+from jb_drf_auth.throttling import BasicLoginIPThrottle, BasicLoginIdentityThrottle
 
 
 class BasicLoginView(APIView):
     permission_classes = []
+    throttle_classes = [BasicLoginIPThrottle, BasicLoginIdentityThrottle]
 
     def post(self, request):
         serializer = BasicLoginSerializer(data=request.data, context={"request": request})

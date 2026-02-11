@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 from safedelete.models import SafeDeleteModel, SOFT_DELETE
 
@@ -26,6 +27,108 @@ class AbstractSafeDeleteModel(SafeDeleteModel):
         abstract = True
 
 
+class UserOwnedModel(models.Model):
+    """
+    Abstract base for models owned by a user.
+    """
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, db_index=True)
+
+    class Meta:
+        abstract = True
+
+
+class ProfileOwnedModel(models.Model):
+    """
+    Abstract base for models owned by a profile.
+    """
+
+    profile = models.ForeignKey(
+        get_setting("PROFILE_MODEL") or "authentication.Profile",
+        on_delete=models.CASCADE,
+        db_index=True,
+    )
+
+    class Meta:
+        abstract = True
+
+
+class AbstractJbPersonDataModel(models.Model):
+    """
+    Abstract base for person-like profile fields.
+    """
+
+    GENDER_CHOICES = get_setting("PROFILE_GENDER_CHOICES")
+
+    first_name = models.CharField(max_length=100, blank=True, null=True)
+    last_name_1 = models.CharField(max_length=150, blank=True, null=True)
+    last_name_2 = models.CharField(max_length=150, blank=True, null=True)
+    birthday = models.DateField(blank=True, null=True)
+    gender = models.CharField(
+        max_length=50,
+        choices=GENDER_CHOICES,
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        abstract = True
+
+
+class AbstractPersonCore(AbstractJbPersonDataModel):
+    """
+    Abstract core for person identity fields.
+    """
+
+    national_id = models.CharField(max_length=50, blank=True, null=True, db_index=True)
+    tax_id = models.CharField(max_length=50, blank=True, null=True, db_index=True)
+
+    # Contact
+    contact_email = models.EmailField(blank=True, null=True, db_index=True)
+    # Store phone numbers in E.164 format (e.g. +525512345678)
+    mobile_phone = models.CharField(max_length=20, blank=True, null=True, db_index=True)
+    home_phone = models.CharField(max_length=20, blank=True, null=True)
+    work_phone = models.CharField(max_length=20, blank=True, null=True)
+    work_phone_ext = models.CharField(max_length=10, blank=True, null=True)
+
+    # Address
+    address_line_1 = models.CharField(max_length=255, blank=True, null=True)
+    address_line_2 = models.CharField(max_length=255, blank=True, null=True)
+    district = models.CharField(max_length=100, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    region = models.CharField(max_length=100, blank=True, null=True)
+    country_code = models.CharField(max_length=2, blank=True, null=True)
+    postal_code = models.CharField(max_length=20, blank=True, null=True)
+
+    # Additional data
+    marital_status = models.CharField(max_length=50, blank=True, null=True)
+    birth_place = models.CharField(max_length=255, blank=True, null=True)
+    insurance_number = models.CharField(max_length=100, blank=True, null=True)
+    scholarship = models.CharField(max_length=100, blank=True, null=True)
+    occupation = models.CharField(max_length=100, blank=True, null=True)
+
+    # Emergency contact
+    emergency_contact_name = models.CharField(max_length=255, blank=True, null=True)
+    emergency_contact_phone = models.CharField(max_length=20, blank=True, null=True)
+
+    # Document files
+    id_document_front = models.ImageField(
+        upload_to=get_setting("PERSON_ID_DOCUMENTS_UPLOAD_TO"),
+        blank=True,
+        null=True,
+    )
+    id_document_back = models.ImageField(
+        upload_to=get_setting("PERSON_ID_DOCUMENTS_UPLOAD_TO"),
+        blank=True,
+        null=True,
+    )
+
+    is_identity_verified = models.BooleanField(default=False)
+
+    class Meta:
+        abstract = True
+
+
 class AbstractJbUser(AbstractSafeDeleteModel, AbstractTimeStampedModel, AbstractUser):
     """
     Abstract base for User.
@@ -42,7 +145,7 @@ class AbstractJbUser(AbstractSafeDeleteModel, AbstractTimeStampedModel, Abstract
     email = models.EmailField(
         "email address",
         unique=True,
-        error_messages={"unique": "Ya existe un usuario con este correo."},
+        error_messages={"unique": _("Ya existe un usuario con este correo.")},
     )
     phone = models.CharField(max_length=20, unique=True, blank=True, null=True)
     is_verified = models.BooleanField("verified", default=False)
@@ -51,8 +154,7 @@ class AbstractJbUser(AbstractSafeDeleteModel, AbstractTimeStampedModel, Abstract
         blank=True,
         null=True,
     )
-    language = models.CharField(max_length=10, default=settings.LANGUAGE_CODE)
-    timezone = models.CharField(max_length=50, default=settings.TIME_ZONE)
+    settings = models.JSONField(default=dict, blank=True)
 
     class Meta:
         abstract = True
@@ -66,14 +168,36 @@ class AbstractJbUser(AbstractSafeDeleteModel, AbstractTimeStampedModel, Abstract
         """
         return self.profiles.filter(is_default=True).first()
 
+    def _user_settings(self):
+        return self.settings if isinstance(self.settings, dict) else {}
 
-class AbstractJbProfile(AbstractSafeDeleteModel, AbstractTimeStampedModel):
+    @property
+    def language(self):
+        return self._user_settings().get("language") or settings.LANGUAGE_CODE
+
+    @language.setter
+    def language(self, value):
+        payload = self._user_settings()
+        payload["language"] = value
+        self.settings = payload
+
+    @property
+    def timezone(self):
+        return self._user_settings().get("timezone") or settings.TIME_ZONE
+
+    @timezone.setter
+    def timezone(self, value):
+        payload = self._user_settings()
+        payload["timezone"] = value
+        self.settings = payload
+
+
+class AbstractJbProfile(AbstractSafeDeleteModel, AbstractTimeStampedModel, AbstractPersonCore):
     """
     Abstract base for Profile.
     NOTE: A User has MANY profiles.
     """
     ROLE_CHOICES = get_setting("PROFILE_ROLE_CHOICES")
-    GENDER_CHOICES = get_setting("PROFILE_GENDER_CHOICES")
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -89,19 +213,10 @@ class AbstractJbProfile(AbstractSafeDeleteModel, AbstractTimeStampedModel):
         default=get_setting("DEFAULT_PROFILE_ROLE"),
         choices=ROLE_CHOICES,
     )
+    settings = models.JSONField(default=dict, blank=True)
 
-    first_name = models.CharField(max_length=100, blank=True, null=True)
-    middle_name = models.CharField(max_length=150, blank=True, null=True)
-    last_name = models.CharField(max_length=150, blank=True, null=True)
-    birthday = models.DateField(blank=True, null=True)
-    gender = models.CharField(
-        max_length=50,
-        choices=GENDER_CHOICES,
-        blank=True,
-        null=True,
-    )
     picture = models.ImageField(
-        upload_to=get_setting("PROFILE_PICTURE_UPLOAD_TO"),
+        upload_to=get_setting("PERSON_PICTURE_UPLOAD_TO") or get_setting("PROFILE_PICTURE_UPLOAD_TO"),
         max_length=500,
         blank=True,
         null=True,
@@ -117,7 +232,20 @@ class AbstractJbProfile(AbstractSafeDeleteModel, AbstractTimeStampedModel):
         ]
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}".strip()
+        return self.full_name
+
+    @staticmethod
+    def _join_non_empty(parts):
+        return " ".join([part for part in parts if part and str(part).strip()]).strip()
+
+    @property
+    def display_name(self):
+        first_last_name = self.last_name_1 or self.last_name_2
+        return self._join_non_empty([self.first_name, first_last_name])
+
+    @property
+    def full_name(self):
+        return self._join_non_empty([self.first_name, self.last_name_1, self.last_name_2])
 
     def save(self, *args, **kwargs):
         if self.is_default:

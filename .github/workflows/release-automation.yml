@@ -1,0 +1,133 @@
+name: Release Automation
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Release type"
+        type: choice
+        required: true
+        options:
+          - rc
+          - stable
+      version:
+        description: "Base semver version (X.Y.Z)"
+        type: string
+        required: true
+      rc_number:
+        description: "RC number (required only for rc)"
+        type: string
+        required: false
+        default: "1"
+      target_branch:
+        description: "Branch to bump/tag from"
+        type: string
+        required: false
+        default: "main"
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_branch }}
+          fetch-depth: 0
+
+      - name: Validate inputs and compute versions
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          VERSION='${{ inputs.version }}'
+          RELEASE_TYPE='${{ inputs.release_type }}'
+          RC_NUMBER='${{ inputs.rc_number }}'
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid version '$VERSION'. Expected X.Y.Z"
+            exit 1
+          fi
+
+          if [[ "$RELEASE_TYPE" == "rc" ]]; then
+            if [[ -z "$RC_NUMBER" || ! "$RC_NUMBER" =~ ^[0-9]+$ ]]; then
+              echo "Invalid rc_number '$RC_NUMBER'. Expected positive integer."
+              exit 1
+            fi
+            PACKAGE_VERSION="${VERSION}rc${RC_NUMBER}"
+            TAG_NAME="v${VERSION}-rc${RC_NUMBER}"
+            COMMIT_MESSAGE="chore: prepare ${PACKAGE_VERSION}"
+          else
+            PACKAGE_VERSION="$VERSION"
+            TAG_NAME="v${VERSION}"
+            COMMIT_MESSAGE="chore: release ${PACKAGE_VERSION}"
+          fi
+
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> "$GITHUB_ENV"
+          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_ENV"
+          echo "COMMIT_MESSAGE=$COMMIT_MESSAGE" >> "$GITHUB_ENV"
+
+      - name: Ensure tag does not already exist
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Tag '$TAG_NAME' already exists locally."
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG_NAME" >/dev/null 2>&1; then
+            echo "Tag '$TAG_NAME' already exists on origin."
+            exit 1
+          fi
+
+      - name: Bump package version in pyproject.toml
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! grep -q '^version = "' pyproject.toml; then
+            echo "Could not find version field in pyproject.toml"
+            exit 1
+          fi
+
+          sed -i -E "0,/^version = \".*\"/s//version = \"${PACKAGE_VERSION}\"/" pyproject.toml
+
+      - name: Commit, tag and push
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add pyproject.toml
+
+          if git diff --cached --quiet; then
+            echo "No changes detected in pyproject.toml; aborting release."
+            exit 1
+          fi
+
+          git commit -m "$COMMIT_MESSAGE"
+          git tag "$TAG_NAME"
+
+          git push origin "HEAD:${{ inputs.target_branch }}"
+          git push origin "$TAG_NAME"
+
+      - name: Create GitHub Release (stable only)
+        if: ${{ inputs.release_type == 'stable' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh release create "$TAG_NAME" \
+            --title "$TAG_NAME" \
+            --generate-notes \
+            --target "${{ inputs.target_branch }}"

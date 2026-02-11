@@ -1,7 +1,9 @@
 import random
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.utils.translation import gettext as _
 from rest_framework import serializers
+from rest_framework.exceptions import APIException, AuthenticationFailed, Throttled
 
 from jb_drf_auth.conf import get_setting
 from jb_drf_auth.services.client import ClientService
@@ -17,6 +19,12 @@ from jb_drf_auth.utils import (
 
 
 User = get_user_model()
+
+
+class SmsDeliveryError(APIException):
+    status_code = 503
+    default_detail = _("No se pudo enviar el codigo. Intenta mas tarde.")
+    default_code = "sms_delivery_error"
 
 
 class OtpService:
@@ -51,16 +59,14 @@ class OtpService:
         if latest and latest.last_sent_at:
             seconds_since = (now - latest.last_sent_at).total_seconds()
             if seconds_since < cooldown_seconds:
-                raise serializers.ValidationError(
-                    {"detail": "Debes esperar antes de solicitar otro código."}
-                )
+                raise Throttled(detail=_("Debes esperar antes de solicitar otro codigo."))
 
         if channel == "sms":
             try:
                 sms_log_model = get_sms_log_model_cls()
             except RuntimeError as exc:
                 raise serializers.ValidationError(
-                    {"detail": "Configura JB_DRF_AUTH_SMS_LOG_MODEL para usar SMS."}
+                    {"detail": _("Configura JB_DRF_AUTH_SMS_LOG_MODEL para usar SMS.")}
                 ) from exc
             sms_provider = get_sms_provider()
             ttl_minutes = max(1, int(get_setting("OTP_TTL_SECONDS") / 60))
@@ -89,9 +95,7 @@ class OtpService:
                     status="failed",
                     error_message=str(exc),
                 )
-                raise serializers.ValidationError(
-                    {"detail": "No se pudo enviar el código. Intenta mas tarde."}
-                ) from exc
+                raise SmsDeliveryError() from exc
         else:
             otp = otp_model.objects.create(
                 email=email,
@@ -103,7 +107,7 @@ class OtpService:
             )
             print("Sending OTP code:", code)
 
-        return {"detail": "Código enviado exitosamente.", "channel": otp.channel}
+        return {"detail": _("Código enviado exitosamente."), "channel": otp.channel}
 
     @staticmethod
     def verify_otp_code(data):
@@ -132,16 +136,16 @@ class OtpService:
 
         otp = otp.order_by("-id").first()
         if not otp:
-            raise serializers.ValidationError({"detail": "Código invalido o expirado."})
+            raise AuthenticationFailed(_("Codigo invalido o expirado."))
 
         max_attempts = get_setting("OTP_MAX_ATTEMPTS")
         if otp.attempts >= max_attempts:
-            raise serializers.ValidationError({"detail": "Se excedieron los intentos permitidos."})
+            raise Throttled(detail=_("Se excedieron los intentos permitidos."))
 
         if otp.code != code:
             otp.attempts += 1
             otp.save(update_fields=["attempts"])
-            raise serializers.ValidationError({"detail": "Código invalido o expirado."})
+            raise AuthenticationFailed(_("Codigo invalido o expirado."))
 
         otp.is_used = True
         otp.save(update_fields=["is_used"])

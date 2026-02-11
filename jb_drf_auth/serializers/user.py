@@ -13,6 +13,8 @@ def _safe_exclude_fields(model, fields):
 
 class UserSerializer(serializers.ModelSerializer):
     profiles = ProfileSerializer(read_only=True, many=True)
+    language = serializers.SerializerMethodField()
+    timezone = serializers.SerializerMethodField()
 
     class Meta:
         model = get_user_model()
@@ -30,3 +32,9 @@ class UserSerializer(serializers.ModelSerializer):
                 "modified",
             ),
         )
+
+    def get_language(self, obj):
+        return obj.language
+
+    def get_timezone(self, obj):
+        return obj.timezone

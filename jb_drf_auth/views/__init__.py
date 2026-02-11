@@ -1,4 +1,4 @@
-from jb_drf_auth.views.account_management import delete_account
+from jb_drf_auth.views.account_management import AccountUpdateView, delete_account
 from jb_drf_auth.views.email_confirmation import (
     AccountConfirmEmailView,
     ResendConfirmationEmailView,
@@ -17,6 +17,7 @@ from jb_drf_auth.views.user_admin import CreateStaffUserView, CreateSuperUserVie
 
 __all__ = [
     "delete_account",
+    "AccountUpdateView",
     "AccountConfirmEmailView",
     "ResendConfirmationEmailView",
     "BasicLoginView",

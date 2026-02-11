@@ -1,0 +1,897 @@
+{
+  "info": {
+    "name": "jb-drf-auth API",
+    "_postman_id": "6b3048f7-9d9a-4da9-8080-52ef8a8f193a",
+    "description": "Postman collection aligned with docs/API_CONTRACT.md",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "host",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "basePath",
+      "value": "/auth"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "profileId",
+      "value": "1"
+    },
+    {
+      "key": "bootstrapToken",
+      "value": "super-secret-token"
+    }
+  ],
+  "item": [
+    {
+      "name": "Registration",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"username\": \"user1\",\n  \"password\": \"secret123\",\n  \"password_confirm\": \"secret123\",\n  \"first_name\": \"Joel\",\n  \"last_name_1\": \"Barron\",\n  \"last_name_2\": \"Lopez\",\n  \"birthday\": \"1990-01-01\",\n  \"gender\": \"MALE\",\n  \"role\": \"USER\",\n  \"terms_and_conditions_accepted\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/register/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "register",
+                ""
+              ]
+            },
+            "description": "Example 201: {\n  \"detail\": \"Usuario creado. Revisa tu correo para verificar tu cuenta.\"\n}\n\nExample 201 (email failed): {\n  \"detail\": \"Usuario creado, pero el correo no fue enviado.\",\n  \"email_sent\": false\n}"
+          },
+          "response": []
+        },
+        {
+          "name": "Account confirmation email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"<uidb64>\",\n  \"token\": \"<token>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/registration/account-confirmation-email/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "registration",
+                "account-confirmation-email",
+                ""
+              ]
+            },
+            "description": "Example 200: {\n  \"detail\": \"Correo verificado con éxito.\"\n}"
+          },
+          "response": []
+        },
+        {
+          "name": "Resend confirmation email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/registration/account-confirmation-email/resend/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "registration",
+                "account-confirmation-email",
+                "resend",
+                ""
+              ]
+            },
+            "description": "Example 200: {\n  \"detail\": \"Correo de verificación reenviado.\",\n  \"email_sent\": true\n}\n\nExample 200 (not sent): {\n  \"detail\": \"Solicitud recibida, pero el correo no fue enviado.\",\n  \"email_sent\": false\n}"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Login and Session",
+      "item": [
+        {
+          "name": "Basic login (web)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"user@example.com\",\n  \"password\": \"secret123\",\n  \"client\": \"web\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/login/basic/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "login",
+                "basic",
+                ""
+              ]
+            },
+            "description": "Web login through /login/basic/. Device is optional and ignored for client=web."
+          },
+          "response": []
+        },
+        {
+          "name": "Basic login (mobile)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"user@example.com\",\n  \"password\": \"secret123\",\n  \"client\": \"mobile\",\n  \"device\": {\n    \"platform\": \"ios\",\n    \"name\": \"iPhone\",\n    \"token\": \"optional_push_token\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/login/basic/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "login",
+                "basic",
+                ""
+              ]
+            },
+            "description": "Mobile login through /login/basic/. Device payload is required for client=mobile."
+          },
+          "response": []
+        },
+        {
+          "name": "Switch profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}{{basePath}}/profile/switch/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "profile",
+                "switch",
+                ""
+              ]
+            },
+            "description": "Example 200: returns client-specific payload with refreshed tokens for selected profile.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profile\": {{profileId}},\n  \"client\": \"mobile\",\n  \"device\": {\n    \"platform\": \"android\",\n    \"name\": \"Pixel\",\n    \"token\": \"device_token\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}{{basePath}}/token/refresh/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "token",
+                "refresh",
+                ""
+              ]
+            },
+            "description": "Example 200: {\n  \"access\": \"<new_access_token>\"\n}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refreshToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "OTP",
+      "item": [
+        {
+          "name": "Request OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+525512345678\",\n  \"channel\": \"sms\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/otp/request/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "otp",
+                "request",
+                ""
+              ]
+            },
+            "description": "Example 201: {\n  \"detail\": \"Código enviado exitosamente.\",\n  \"channel\": \"sms\"\n}"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+525512345678\",\n  \"code\": \"123456\",\n  \"client\": \"web\",\n  \"device\": {\n    \"platform\": \"ios\",\n    \"name\": \"iPhone\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/otp/verify/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "otp",
+                "verify",
+                ""
+              ]
+            },
+            "description": "Example 200: returns client-specific session payload with tokens and active profile."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Password",
+      "item": [
+        {
+          "name": "Password reset request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/password-reset/request/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "password-reset",
+                "request",
+                ""
+              ]
+            },
+            "description": "Example 200: {\n  \"detail\": \"Si el correo existe, se ha enviado un enlace de restablecimiento.\",\n  \"email_sent\": true\n}"
+          },
+          "response": []
+        },
+        {
+          "name": "Password reset confirm",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"uid\": \"<uidb64>\",\n  \"token\": \"<token>\",\n  \"new_password\": \"new-secret-123\",\n  \"new_password_confirm\": \"new-secret-123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/password-reset/confirm/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "password-reset",
+                "confirm",
+                ""
+              ]
+            },
+            "description": "Example 200: {\n  \"detail\": \"Contrasena restablecida con exito.\"\n}"
+          },
+          "response": []
+        },
+        {
+          "name": "Password change",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"old-secret\",\n  \"new_password\": \"new-secret\",\n  \"new_password_confirm\": \"new-secret\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/password-reset/change/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "password-reset",
+                "change",
+                ""
+              ]
+            },
+            "description": "Example 200: {\n  \"detail\": \"Contrasena actualizada con exito.\"\n}"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Account",
+      "item": [
+        {
+          "name": "Me",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{host}}{{basePath}}/me/?client=web",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "me",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "client",
+                  "value": "web"
+                }
+              ]
+            },
+            "description": "Example 200: returns user payload, active_profile, user_settings, profile_settings, and profile_completion_required."
+          },
+          "response": []
+        },
+        {
+          "name": "Account update (PATCH)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"en\",\n  \"timezone\": \"America/Mexico_City\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/account/update/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "account",
+                "update",
+                ""
+              ]
+            },
+            "description": "Example 200: returns serialized user object."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete account",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"confirmation\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/account/delete/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "account",
+                "delete",
+                ""
+              ]
+            },
+            "description": "Example 200: \"Cuenta eliminada correctamente.\""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Profiles",
+      "item": [
+        {
+          "name": "List profiles",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{host}}{{basePath}}/profiles/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "profiles",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Joel\",\n  \"last_name_1\": \"Barron\",\n  \"last_name_2\": \"Lopez\",\n  \"role\": \"USER\",\n  \"is_default\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/profiles/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "profiles",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{host}}{{basePath}}/profiles/{{profileId}}/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "profiles",
+                "{{profileId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update profile (PATCH)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Jo\",\n  \"last_name_1\": \"Barron\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/profiles/{{profileId}}/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "profiles",
+                "{{profileId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{host}}{{basePath}}/profiles/{{profileId}}/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "profiles",
+                "{{profileId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Create superuser",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Admin-Bootstrap-Token",
+                "value": "{{bootstrapToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"secret123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/admin/create-superuser/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "admin",
+                "create-superuser",
+                ""
+              ]
+            },
+            "description": "Example 201: {\n  \"detail\": \"Superusuario creado.\",\n  \"id\": 9,\n  \"email\": \"admin@example.com\",\n  \"is_superuser\": true,\n  \"is_staff\": true\n}"
+          },
+          "response": []
+        },
+        {
+          "name": "Create staff",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"staff@example.com\",\n  \"password\": \"secret123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/admin/create-staff/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "admin",
+                "create-staff",
+                ""
+              ]
+            },
+            "description": "Example 201: {\n  \"detail\": \"Usuario staff creado.\",\n  \"id\": 10,\n  \"email\": \"staff@example.com\",\n  \"is_superuser\": false,\n  \"is_staff\": true\n}"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ DEFAULTS = {
     "AUTH_SINGLE_SESSION_ON_MOBILE": False,
     "FRONTEND_URL": None,
     "DEFAULT_FROM_EMAIL": None,
+    "TERMS_AND_CONDITIONS_REQUIRED": True,
     "EMAIL_PROVIDER": "jb_drf_auth.providers.django_email.DjangoEmailProvider",
     "EMAIL_LOG_MODEL": None,  # required for email flows: "authentication.EmailLog"
     "EMAIL_TEMPLATES": None,
@@ -31,6 +32,8 @@ DEFAULTS = {
     "DEFAULT_PROFILE_ROLE": "USER",
     "PROFILE_ID_CLAIM": "profile_id",
     "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
+    "PERSON_PICTURE_UPLOAD_TO": None,
+    "PERSON_ID_DOCUMENTS_UPLOAD_TO": "uploads/people/id-documents",
     "SMS_PROVIDER": "jb_drf_auth.providers.aws_sns.AwsSnsSmsProvider",
     "SMS_SENDER_ID": None,
     "SMS_TYPE": "Transactional",
@@ -39,6 +42,23 @@ DEFAULTS = {
     "PHONE_DEFAULT_COUNTRY_CODE": None,
     "PHONE_MIN_LENGTH": 10,
     "PHONE_MAX_LENGTH": 15,
+    "THROTTLE_ENABLED": True,
+    "THROTTLE_RATES": {
+        "LOGIN_IP": "20/min",
+        "LOGIN_IDENTITY": "10/min",
+        "REGISTER_IP": "10/hour",
+        "REGISTER_IDENTITY": "5/hour",
+        "OTP_REQUEST_IP": "20/hour",
+        "OTP_REQUEST_IDENTITY": "30/hour",
+        "OTP_VERIFY_IP": "30/hour",
+        "OTP_VERIFY_IDENTITY": "60/hour",
+        "PASSWORD_RESET_REQUEST_IP": "15/hour",
+        "PASSWORD_RESET_REQUEST_IDENTITY": "5/hour",
+        "PASSWORD_RESET_CONFIRM_IP": "30/hour",
+        "EMAIL_CONFIRMATION_IP": "30/hour",
+        "EMAIL_CONFIRMATION_RESEND_IP": "10/hour",
+        "EMAIL_CONFIRMATION_RESEND_IDENTITY": "5/hour",
+    },
 }
 
 PREFIX = "JB_DRF_AUTH_"

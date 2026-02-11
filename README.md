@@ -1,32 +1,17 @@
 # jb-drf-auth
 
-Reusable authentication foundations for **Django + Django REST Framework** projects.
+Reusable authentication module for Django + Django REST Framework.
 
-`jb-drf-auth` provides a clean, extensible base for authentication-related concerns, focused on:
+`jb-drf-auth` is a reusable foundation for authentication flows across projects, including:
 
-- Abstract user and profile models
-- Soft delete using `django-safedelete`
-- Support for **multiple profiles per user**
-- Project-level extensibility (different profile schemas per project)
-- Integration with DRF viewsets/serializers
+- User/profile base models (extensible)
+- OTP flows (email/SMS)
+- Login, registration, password reset, email confirmation
+- Multi-profile support
+- Provider-based SMS/email architecture
+- Configurable behavior via Django settings
 
-This package is designed to be installed via PyPI and reused across multiple Django projects without duplicating auth logic.
-
----
-
-## ✨ Features
-
-- ✅ Abstract `User` base compatible with default or custom Django users
-- ✅ Abstract `Profile` base (one user → many profiles)
-- ✅ Built-in **soft delete** via `django-safedelete`
-- ✅ Zero migrations inside the package (migrations live in consumer projects)
-- ✅ Dynamic model resolution via Django settings
-- ✅ Django 5 compatible
-- ✅ DRF serializers, services, and views based on `base_code`
-
----
-
-## 📦 Installation
+## Installation
 
 ```bash
 pip install jb-drf-auth
@@ -34,161 +19,59 @@ pip install jb-drf-auth
 
 Add `jb_drf_auth` and `rest_framework` to `INSTALLED_APPS`.
 
----
+## Documentation
 
-## ⚙️ Settings
+- Main docs index: `docs/README.md`
+- Getting started and configuration: `docs/getting-started.md`
+- API contract (endpoint by endpoint): `docs/API_CONTRACT.md`
+- Migration guide: `docs/migration.md`
+- i18n integration guide: `docs/i18n.md`
+- Release guide: `docs/release.md`
+- Roadmap: `roadmap.md`
 
-Minimal required settings (add to `settings.py`):
+## Quick Start
 
-```python
-JB_DRF_AUTH_PROFILE_MODEL = "authentication.Profile"
-JB_DRF_AUTH_DEVICE_MODEL = "authentication.Device"
-JB_DRF_AUTH_OTP_MODEL = "authentication.OtpCode"
-JB_DRF_AUTH_EMAIL_LOG_MODEL = "authentication.EmailLog"
-
-JB_DRF_AUTH_FRONTEND_URL = "https://your-frontend"
-JB_DRF_AUTH_DEFAULT_FROM_EMAIL = "no-reply@your-domain.com"
-```
-
-Optional:
+1. Configure concrete models in your project (`User`, `Profile`, `Device`, `OtpCode`, logs).
+2. Configure `JB_DRF_AUTH` settings (minimal real-world example):
 
 ```python
-JB_DRF_AUTH_AUTHENTICATION_TYPE = "email"  # "email", "username", "both"
-JB_DRF_AUTH_AUTH_SINGLE_SESSION_ON_MOBILE = False
-JB_DRF_AUTH_ADMIN_BOOTSTRAP_TOKEN = "super-secret"
-JB_DRF_AUTH_PROFILE_PICTURE_UPLOAD_TO = "uploads/users/profile-pictures"
-JB_DRF_AUTH_SMS_PROVIDER = "jb_drf_auth.providers.aws_sns.AwsSnsSmsProvider"
-JB_DRF_AUTH_SMS_SENDER_ID = "YourBrand"
-JB_DRF_AUTH_SMS_TYPE = "Transactional"
-JB_DRF_AUTH_SMS_OTP_MESSAGE = "Tu codigo es {code}. Expira en {minutes} minutos." #OTP messages must use 160 GSM-7 characters only (no accents, emojis, or special symbols).
-JB_DRF_AUTH_SMS_LOG_MODEL = "authentication.SmsLog"
-JB_DRF_AUTH_EMAIL_PROVIDER = "jb_drf_auth.providers.django_email.DjangoEmailProvider"
-JB_DRF_AUTH_EMAIL_TEMPLATES = {}
-JB_DRF_AUTH_OTP_LENGTH = 6
-JB_DRF_AUTH_OTP_TTL_SECONDS = 300
-JB_DRF_AUTH_OTP_MAX_ATTEMPTS = 5
-JB_DRF_AUTH_OTP_RESEND_COOLDOWN_SECONDS = 60
-JB_DRF_AUTH_PHONE_DEFAULT_COUNTRY_CODE = "52"  # required only if clients don't send E.164 (+countrycode)
-```
-
-You can also configure everything using a single dict (copy/paste ready):
-
-```python
-AUTH_USER_MODEL = "authentication.User"
-
 JB_DRF_AUTH = {
     "PROFILE_MODEL": "authentication.Profile",
     "DEVICE_MODEL": "authentication.Device",
     "OTP_MODEL": "authentication.OtpCode",
     "SMS_LOG_MODEL": "authentication.SmsLog",
     "EMAIL_LOG_MODEL": "authentication.EmailLog",
-    "FRONTEND_URL": "https://your-frontend",
+    "FRONTEND_URL": env("FRONTEND_URL", default="http://localhost:3000"),
     "DEFAULT_FROM_EMAIL": "no-reply@your-domain.com",
-    "AUTHENTICATION_TYPE": "email",  # "email", "username", "both"
-    "CLIENT_CHOICES": ("web", "mobile"),
-    "AUTH_SINGLE_SESSION_ON_MOBILE": False,
-    "ADMIN_BOOTSTRAP_TOKEN": "super-secret",
+    "AUTHENTICATION_TYPE": "both",  # "email", "username", "both"
+    "AUTH_SINGLE_SESSION_ON_MOBILE": env.bool(
+        "AUTH_SINGLE_SESSION_ON_MOBILE", default=False
+    ),
+    "ADMIN_BOOTSTRAP_TOKEN": env("ADMIN_BOOTSTRAP_TOKEN", default="super-secret-token"),
     "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
+    "PERSON_ID_DOCUMENTS_UPLOAD_TO": "uploads/people/id-documents",
     "PROFILE_ROLE_CHOICES": (
-        ("USER", "Usuario"),
-        ("COMMERCE", "Comercio"),
+        ("PATIENT", "Patient"),
+        ("DOCTOR", "Doctor"),
         ("ADMIN", "Admin"),
     ),
-    "PROFILE_GENDER_CHOICES": (
-        ("MALE", "Masculino"),
-        ("FEMALE", "Femenino"),
-        ("OTHER", "Otro"),
-        ("PREFER_NOT_TO_SAY", "Prefiero no decirlo"),
-    ),
-    "DEFAULT_PROFILE_ROLE": "USER",
-    "PROFILE_ID_CLAIM": "profile_id",
-    "SMS_PROVIDER": "jb_drf_auth.providers.aws_sns.AwsSnsSmsProvider",
+    "DEFAULT_PROFILE_ROLE": "PATIENT",
     "SMS_SENDER_ID": "YourBrand",
-    "SMS_TYPE": "Transactional",
-    "SMS_OTP_MESSAGE": "Tu codigo es {code}. Expira en {minutes} minutos.",
-    "OTP_LENGTH": 6,
-    "OTP_TTL_SECONDS": 300,
-    "OTP_MAX_ATTEMPTS": 5,
-    "OTP_RESEND_COOLDOWN_SECONDS": 60,
-    "PHONE_DEFAULT_COUNTRY_CODE": "52",
-    "PHONE_MIN_LENGTH": 10,
-    "PHONE_MAX_LENGTH": 15,
-    "EMAIL_PROVIDER": "jb_drf_auth.providers.django_email.DjangoEmailProvider",
-    "EMAIL_TEMPLATES": {},
+    "SMS_OTP_MESSAGE": "Tu codigo para acceder a Mentalysis es {code}. Expira en {minutes} minutos.",
 }
 ```
 
-Email template example:
+If you use `env(...)`/`env.bool(...)`, ensure `environ.Env()` is configured in your settings module.
+3. Mount URLs:
 
 ```python
-JB_DRF_AUTH_EMAIL_TEMPLATES = {
-    "email_confirmation": {
-        "subject": "Verifica tu correo",
-        "text": "Hola {user_email}, verifica tu correo aqui: {verify_url}",
-        "html": "<p>Hola {user_email},</p><a href=\"{verify_url}\">Verificar</a>",
-    },
-    "password_reset": {
-        "subject": "Restablece tu contrasena",
-        "text": "Hola {user_email}, restablece tu contrasena: {reset_url}",
-        "html": "<p>Hola {user_email},</p><a href=\"{reset_url}\">Restablecer</a>",
-    },
-}
-```
-
----
-
-## 🧩 Models
-
-Create concrete models in your project by extending the base classes.
-
-```python
-# authentication/models.py
-from django.db import models
-from jb_drf_auth.models import (
-    AbstractJbUser,
-    AbstractJbProfile,
-    AbstractJbDevice,
-    AbstractJbEmailLog,
-    AbstractJbOtpCode,
-    AbstractJbSmsLog,
-)
-
-
-class User(AbstractJbUser):
-    pass
-
-
-class Profile(AbstractJbProfile):
-    pass
-
-
-class Device(AbstractJbDevice):
-    pass
-
-
-class OtpCode(AbstractJbOtpCode):
-    pass
-
-
-class SmsLog(AbstractJbSmsLog):
-    pass
-
-
-class EmailLog(AbstractJbEmailLog):
-    pass
-```
-
-Then set `AUTH_USER_MODEL = "authentication.User"` and run migrations in your project.
-
----
-
-## 🛣️ URLs
-
-```python
-# project/urls.py
 from django.urls import include, path
 
 urlpatterns = [
     path("auth/", include("jb_drf_auth.urls")),
 ]
 ```
+
+4. Run migrations in the integrator project.
+
+For complete setup examples (including full `JB_DRF_AUTH` dict), see `docs/getting-started.md`.

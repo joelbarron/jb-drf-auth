@@ -4,9 +4,17 @@ from rest_framework.views import APIView
 
 from jb_drf_auth.serializers import OtpCodeRequestSerializer, OtpCodeVerifySerializer
 from jb_drf_auth.services.otp import OtpService
+from jb_drf_auth.throttling import (
+    OtpRequestIPThrottle,
+    OtpRequestIdentityThrottle,
+    OtpVerifyIPThrottle,
+    OtpVerifyIdentityThrottle,
+)
 
 
 class RequestOtpCodeView(APIView):
+    throttle_classes = [OtpRequestIPThrottle, OtpRequestIdentityThrottle]
+
     def post(self, request):
         serializer = OtpCodeRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -16,6 +24,8 @@ class RequestOtpCodeView(APIView):
 
 
 class VerifyOtpCodeView(APIView):
+    throttle_classes = [OtpVerifyIPThrottle, OtpVerifyIdentityThrottle]
+
     def post(self, request):
         serializer = OtpCodeVerifySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

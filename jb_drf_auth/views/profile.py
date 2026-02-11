@@ -7,7 +7,7 @@ from jb_drf_auth.utils import get_profile_model_cls
 
 class ProfileViewSet(viewsets.ModelViewSet):
     queryset = get_profile_model_cls().objects.all()
-    search_fields = ["id", "first_name", "middle_name", "last_name"]
+    search_fields = ["id", "first_name", "last_name_1", "last_name_2"]
     filter_fields = ["is_active"]
 
     def get_serializer_class(self, *args, **kwargs):

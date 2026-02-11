@@ -3,6 +3,7 @@ from django.contrib.auth.hashers import check_password
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from jb_drf_auth.conf import get_setting
@@ -38,7 +39,7 @@ class PasswordResetService:
         except RuntimeError as exc:
             if raise_on_fail:
                 raise serializers.ValidationError(
-                    {"detail": "Configura JB_DRF_AUTH_EMAIL_LOG_MODEL para usar email."}
+                    {"detail": _("Configura JB_DRF_AUTH_EMAIL_LOG_MODEL para usar email.")}
                 ) from exc
             return False
 
@@ -68,7 +69,7 @@ class PasswordResetService:
             )
             if raise_on_fail:
                 raise serializers.ValidationError(
-                    {"detail": "No se pudo enviar el correo. Intenta mas tarde."}
+                    {"detail": _("No se pudo enviar el correo. Intenta mas tarde.")}
                 ) from exc
             return False
 
