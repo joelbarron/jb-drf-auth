@@ -33,11 +33,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Validate required secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${{ secrets.RELEASE_BOT_TOKEN }}" ]; then
+            echo "Missing required secret: RELEASE_BOT_TOKEN"
+            echo "Create it in Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+
       - name: Checkout target branch
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.target_branch }}
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_BOT_TOKEN }}
 
       - name: Validate inputs and compute versions
         shell: bash
@@ -122,7 +133,7 @@ jobs:
       - name: Create GitHub Release (stable only)
         if: ${{ inputs.release_type == 'stable' }}
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail

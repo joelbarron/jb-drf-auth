@@ -22,6 +22,25 @@ Follow these steps **exactly** every time.
 
 Use workflow: `.github/workflows/release-automation.yml`
 
+### Required one-time setup
+
+Create repository secret:
+
+- `RELEASE_BOT_TOKEN`
+
+This token must belong to a bot/service user and have permissions to:
+
+- push commits/tags to the repository
+- create GitHub Releases
+
+Why this is required:
+
+- If you use default `GITHUB_TOKEN`, pushes/releases created by that token do not
+  trigger other workflows (`push`/`release`) in chained automation scenarios.
+- Using `RELEASE_BOT_TOKEN` allows `Release Automation` to trigger:
+  - `Publish to TestPyPI` (on RC tags)
+  - `Publish to PyPI` (on published releases)
+
 Trigger it manually from GitHub Actions with:
 
 - `release_type`: `rc` or `stable`
@@ -99,6 +118,25 @@ Versioning rule:
 
 - Never reuse a published version.
 - If a release fails or needs fixes, publish a new version (`rc2`, `rc3`, or next patch).
+
+## Step-by-step usage (after your code is ready)
+
+1. Merge your changes into `main`.
+2. Ensure CI is green.
+3. Go to GitHub -> `Actions` -> `Release Automation` -> `Run workflow`.
+4. For RC:
+   - `release_type=rc`
+   - `version=X.Y.Z`
+   - `rc_number=N`
+   - `target_branch=main`
+5. For stable:
+   - `release_type=stable`
+   - `version=X.Y.Z`
+   - `target_branch=main`
+6. Verify chained workflows:
+   - RC path: `Publish to TestPyPI` runs automatically.
+   - Stable path: `Publish to PyPI` runs automatically.
+7. Validate package availability on TestPyPI/PyPI.
 
 ---
 
