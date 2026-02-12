@@ -23,6 +23,16 @@ class MeService:
         return not (has_first_name and has_last_name)
 
     @staticmethod
+    def _profile_photo_url(profile):
+        picture = getattr(profile, "picture", None)
+        if not picture:
+            return None
+        try:
+            return picture.url
+        except (ValueError, AttributeError):
+            return None
+
+    @staticmethod
     def get_me_mobile(user, profile, tokens):
         response = UserSerializer(user).data
         if tokens:
@@ -42,7 +52,7 @@ class MeService:
             "data": {
                 "display_name": profile.display_name,
                 "full_name": profile.full_name,
-                "photoURL": "",
+                "photoURL": MeService._profile_photo_url(profile),
                 "email": user.email,
                 "username": user.username,
                 "birthday": profile.birthday,

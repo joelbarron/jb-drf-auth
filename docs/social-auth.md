@@ -6,6 +6,10 @@ For Google Cloud Console setup (OAuth consent screen, origins, redirect URIs), s
 
 - `google-oauth-setup.md`
 
+For Meta/Facebook app setup (app credentials, login product, redirect URIs), see:
+
+- `facebook-oauth-setup.md`
+
 Current backend endpoint:
 
 - `POST /auth/login/social/`
