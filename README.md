@@ -24,6 +24,7 @@ Add `jb_drf_auth` and `rest_framework` to `INSTALLED_APPS`.
 - Main docs index: `docs/README.md`
 - Getting started and configuration: `docs/getting-started.md`
 - API contract (endpoint by endpoint): `docs/API_CONTRACT.md`
+- Social authentication guide: `docs/social-auth.md`
 - Migration guide: `docs/migration.md`
 - i18n integration guide: `docs/i18n.md`
 - Release guide: `docs/release.md`

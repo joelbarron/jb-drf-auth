@@ -10,8 +10,13 @@ from jb_drf_auth.serializers.password_reset import (
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
 )
-from jb_drf_auth.serializers.profile import ProfileSerializer
+from jb_drf_auth.serializers.profile import ProfilePictureUpdateSerializer, ProfileSerializer
 from jb_drf_auth.serializers.register import RegisterSerializer
+from jb_drf_auth.serializers.social_auth import (
+    SocialLinkSerializer,
+    SocialLoginSerializer,
+    SocialUnlinkSerializer,
+)
 from jb_drf_auth.serializers.user import UserSerializer
 from jb_drf_auth.serializers.user_admin import UserAdminCreateSerializer
 from jb_drf_auth.serializers.user_update import UserUpdateSerializer
@@ -29,7 +34,11 @@ __all__ = [
     "PasswordResetConfirmSerializer",
     "PasswordResetRequestSerializer",
     "ProfileSerializer",
+    "ProfilePictureUpdateSerializer",
     "RegisterSerializer",
+    "SocialLoginSerializer",
+    "SocialLinkSerializer",
+    "SocialUnlinkSerializer",
     "UserSerializer",
     "UserUpdateSerializer",
     "UserAdminCreateSerializer",

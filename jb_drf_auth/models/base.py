@@ -262,6 +262,7 @@ class AbstractJbDevice(AbstractSafeDeleteModel, AbstractTimeStampedModel):
     platform = models.CharField(max_length=250, null=True, blank=True)
     name = models.CharField(max_length=250, null=True, blank=True)
     token = models.CharField(max_length=250, null=True, blank=True)
+    notification_token = models.CharField(max_length=500, null=True, blank=True)
     linked_at = models.DateTimeField(
         "linked at",
         help_text="Date time on which the device was linked to profile.",
@@ -344,3 +345,29 @@ class AbstractJbEmailLog(AbstractTimeStampedModel):
 
     class Meta:
         abstract = True
+
+
+class AbstractJbSocialAccount(AbstractTimeStampedModel):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="social_accounts",
+    )
+    provider = models.CharField(max_length=30, db_index=True)
+    provider_user_id = models.CharField(max_length=255, db_index=True)
+    email = models.EmailField(blank=True, null=True, db_index=True)
+    email_verified = models.BooleanField(default=False)
+    picture_url = models.URLField(max_length=1000, blank=True, null=True)
+    raw_response = models.JSONField(default=dict, blank=True)
+    last_login_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        unique_together = (
+            ("provider", "provider_user_id"),
+            ("user", "provider"),
+        )
+        indexes = [
+            models.Index(fields=["provider", "provider_user_id"]),
+            models.Index(fields=["email"]),
+        ]

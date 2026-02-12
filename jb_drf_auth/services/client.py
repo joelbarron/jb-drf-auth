@@ -21,12 +21,31 @@ class ClientService:
                     {"device": _("Configura JB_DRF_AUTH_DEVICE_MODEL para registrar dispositivos.")}
                 )
 
-            device_model.objects.create(
-                user=user,
-                platform=device_data.get("platform", "Unknown Platform"),
-                name=device_data.get("name", "Unknown Device"),
-                token=device_data.get("token", None),
-            )
+            notification_token = device_data.get("notification_token")
+            if not notification_token:
+                raise serializers.ValidationError(
+                    {"device": _("notification_token es requerido para cliente movil.")}
+                )
+
+            token = device_data.get("token")
+            if token:
+                device_model.objects.update_or_create(
+                    user=user,
+                    token=token,
+                    defaults={
+                        "platform": device_data.get("platform", "Unknown Platform"),
+                        "name": device_data.get("name", "Unknown Device"),
+                        "notification_token": notification_token,
+                    },
+                )
+            else:
+                device_model.objects.create(
+                    user=user,
+                    platform=device_data.get("platform", "Unknown Platform"),
+                    name=device_data.get("name", "Unknown Device"),
+                    token=None,
+                    notification_token=notification_token,
+                )
 
             response_data = MeService.get_me_mobile(user, profile, tokens)
             response_data["device_registered"] = True

@@ -10,6 +10,7 @@ django.setup()
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
 
+from jb_drf_auth.exceptions import SocialAuthError
 from jb_drf_auth.views.account_management import AccountUpdateView, delete_account
 from jb_drf_auth.views.email_confirmation import (
     AccountConfirmEmailView,
@@ -23,8 +24,9 @@ from jb_drf_auth.views.password_reset import (
     PasswordResetConfirmView,
     PasswordResetRequestView,
 )
-from jb_drf_auth.views.profile import ProfileViewSet
+from jb_drf_auth.views.profile import ProfilePictureUpdateView, ProfileViewSet
 from jb_drf_auth.views.register import RegisterView
+from jb_drf_auth.views.social_auth import SocialLinkView, SocialLoginView, SocialUnlinkView
 from jb_drf_auth.views.user_admin import CreateStaffUserView, CreateSuperUserView
 
 
@@ -96,6 +98,85 @@ class EndpointTests(unittest.TestCase):
         self.assertEqual(args[0], "web")
         self.assertIsNone(args[4])
 
+    @patch("jb_drf_auth.services.client.MeService.get_me_mobile")
+    @patch("jb_drf_auth.services.client.get_device_model_cls")
+    @patch("jb_drf_auth.services.login.TokensService.get_tokens_for_user")
+    @patch("jb_drf_auth.services.login.EmailOrUsernameModelBackend.authenticate")
+    def test_basic_login_mobile_requires_notification_token(
+        self,
+        authenticate,
+        get_tokens_for_user,
+        get_device_model_cls,
+        get_me_mobile,
+    ):
+        user = DummyUser()
+        user.get_default_profile = MagicMock(return_value=MagicMock())
+        authenticate.return_value = user
+        get_tokens_for_user.return_value = {"access": "x", "refresh": "y"}
+        get_device_model_cls.return_value = MagicMock()
+        get_me_mobile.return_value = {"ok": True}
+
+        request = self.factory.post(
+            "/auth/login/basic/",
+            {
+                "login": "u",
+                "password": "p",
+                "client": "mobile",
+                "device": {"platform": "ios", "name": "iPhone", "token": "t"},
+            },
+            format="json",
+        )
+        response = BasicLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("device", response.data)
+
+    @patch("jb_drf_auth.services.client.MeService.get_me_mobile")
+    @patch("jb_drf_auth.services.client.get_device_model_cls")
+    @patch("jb_drf_auth.services.login.TokensService.get_tokens_for_user")
+    @patch("jb_drf_auth.services.login.EmailOrUsernameModelBackend.authenticate")
+    def test_basic_login_mobile_registers_notification_token(
+        self,
+        authenticate,
+        get_tokens_for_user,
+        get_device_model_cls,
+        get_me_mobile,
+    ):
+        user = DummyUser()
+        user.get_default_profile = MagicMock(return_value=MagicMock())
+        authenticate.return_value = user
+        get_tokens_for_user.return_value = {"access": "x", "refresh": "y"}
+        device_model = MagicMock()
+        get_device_model_cls.return_value = device_model
+        get_me_mobile.return_value = {"ok": True}
+
+        request = self.factory.post(
+            "/auth/login/basic/",
+            {
+                "login": "u",
+                "password": "p",
+                "client": "mobile",
+                "device": {
+                    "platform": "ios",
+                    "name": "iPhone",
+                    "token": "t",
+                    "notification_token": "push-123",
+                },
+            },
+            format="json",
+        )
+        response = BasicLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("device_registered"), True)
+        device_model.objects.update_or_create.assert_called_once_with(
+            user=user,
+            token="t",
+            defaults={
+                "platform": "ios",
+                "name": "iPhone",
+                "notification_token": "push-123",
+            },
+        )
+
     @patch("jb_drf_auth.views.login.SwitchProfileSerializer")
     @patch("jb_drf_auth.views.login.LoginService.switch_profile")
     def test_switch_profile_view_success(self, switch_profile, serializer_cls):
@@ -108,6 +189,107 @@ class EndpointTests(unittest.TestCase):
         force_authenticate(request, user=self.user)
         response = SwitchProfileView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @patch("jb_drf_auth.views.profile.ProfilePictureUpdateSerializer")
+    def test_profile_picture_update_view_success(self, serializer_cls):
+        serializer = MagicMock()
+        serializer.save.return_value = MagicMock(id=11)
+        serializer_cls.return_value = serializer
+
+        request = self.factory.patch("/auth/profile/picture/", {"picture": "x"}, format="json")
+        force_authenticate(request, user=self.user)
+        response = ProfilePictureUpdateView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("profile_id"), 11)
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.login_or_register")
+    def test_social_login_view_success(self, login_or_register):
+        login_or_register.return_value = {"accessToken": "a", "refreshToken": "b"}
+        request = self.factory.post(
+            "/auth/login/social/",
+            {
+                "provider": "google",
+                "id_token": "token",
+                "client": "web",
+            },
+            format="json",
+        )
+        response = SocialLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.login_or_register")
+    def test_social_login_view_forwards_role(self, login_or_register):
+        login_or_register.return_value = {"accessToken": "a", "refreshToken": "b"}
+        request = self.factory.post(
+            "/auth/login/social/",
+            {
+                "provider": "google",
+                "id_token": "token",
+                "client": "web",
+                "role": "DOCTOR",
+            },
+            format="json",
+        )
+        response = SocialLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(login_or_register.call_args.kwargs.get("role"), "DOCTOR")
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.login_or_register")
+    def test_social_login_view_returns_401_for_invalid_token(self, login_or_register):
+        login_or_register.side_effect = SocialAuthError(
+            "Social token is invalid or expired.",
+            status_code=401,
+            code="social_invalid_token",
+        )
+        request = self.factory.post(
+            "/auth/login/social/",
+            {
+                "provider": "google",
+                "id_token": "token",
+                "client": "web",
+            },
+            format="json",
+        )
+        response = SocialLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data.get("code"), "social_invalid_token")
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.link_account")
+    def test_social_link_view_success(self, link_account):
+        link_account.return_value = {"detail": "ok", "provider": "google"}
+        request = self.factory.post(
+            "/auth/login/social/link/",
+            {"provider": "google", "id_token": "token"},
+            format="json",
+        )
+        force_authenticate(request, user=self.user)
+        response = SocialLinkView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.unlink_account")
+    def test_social_unlink_view_success(self, unlink_account):
+        unlink_account.return_value = {"detail": "ok", "provider": "google"}
+        request = self.factory.post(
+            "/auth/login/social/unlink/",
+            {"provider": "google"},
+            format="json",
+        )
+        force_authenticate(request, user=self.user)
+        response = SocialUnlinkView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_social_login_view_unsupported_provider(self):
+        request = self.factory.post(
+            "/auth/login/social/",
+            {
+                "provider": "unknown",
+                "id_token": "token",
+                "client": "web",
+            },
+            format="json",
+        )
+        response = SocialLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     @patch("jb_drf_auth.views.register.RegisterView.get_serializer")
     def test_register_view_created_email_sent(self, get_serializer):
@@ -167,6 +349,19 @@ class EndpointTests(unittest.TestCase):
         request = self.factory.post("/auth/otp/verify/", {}, format="json")
         response = VerifyOtpCodeView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @patch("jb_drf_auth.views.otp.OtpCodeVerifySerializer")
+    @patch("jb_drf_auth.views.otp.OtpService.verify_otp_code")
+    def test_verify_otp_code_view_forwards_role(self, verify_otp_code, serializer_cls):
+        serializer = MagicMock()
+        serializer.validated_data = {"code": "123456", "client": "web", "role": "DOCTOR"}
+        serializer_cls.return_value = serializer
+        verify_otp_code.return_value = {"detail": "ok"}
+
+        request = self.factory.post("/auth/otp/verify/", {}, format="json")
+        response = VerifyOtpCodeView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        verify_otp_code.assert_called_once_with(serializer.validated_data)
 
     @patch("jb_drf_auth.views.password_reset.PasswordResetRequestSerializer")
     def test_password_reset_request_view_email_sent(self, serializer_cls):

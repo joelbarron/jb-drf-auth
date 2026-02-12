@@ -29,6 +29,14 @@ class SmsDeliveryError(APIException):
 
 class OtpService:
     @staticmethod
+    def _build_phone_fallback_email(phone):
+        """
+        Build a deterministic synthetic email for phone-only OTP sign in.
+        """
+        digits = "".join(ch for ch in str(phone or "") if ch.isdigit()) or "unknown"
+        return f"phone_{digits}@otp.local"
+
+    @staticmethod
     def request_otp_code(data):
         otp_length = get_setting("OTP_LENGTH")
         max_value = (10**otp_length) - 1
@@ -116,6 +124,7 @@ class OtpService:
         phone = data.get("phone")
         client = data.get("client")
         device_data = data.get("device", None)
+        role = data.get("role")
 
         if phone:
             try:
@@ -150,8 +159,8 @@ class OtpService:
         otp.is_used = True
         otp.save(update_fields=["is_used"])
 
-        email = otp.email
-        phone = otp.phone
+        email = (otp.email or "").strip() or None
+        phone = (otp.phone or "").strip() or None
 
         user = None
         if email:
@@ -160,8 +169,9 @@ class OtpService:
             user = User.objects.filter(phone=phone).first()
 
         if not user:
+            create_email = email or OtpService._build_phone_fallback_email(phone)
             user = User.objects.create_user(
-                email=email,
+                email=create_email,
                 phone=phone,
                 is_active=True,
             )
@@ -169,7 +179,7 @@ class OtpService:
             profile_model = get_profile_model_cls()
             profile_model.objects.create(
                 user=user,
-                role=get_setting("DEFAULT_PROFILE_ROLE"),
+                role=role or get_setting("DEFAULT_PROFILE_ROLE"),
                 is_default=True,
             )
 

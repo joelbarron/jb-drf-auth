@@ -4,6 +4,7 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 
+from jb_drf_auth.image_utils import optimize_profile_picture
 from jb_drf_auth.utils import get_profile_model_cls
 
 
@@ -40,3 +41,37 @@ class ProfileSerializer(serializers.ModelSerializer):
         if user.is_authenticated and user == instance.user:
             return super().delete(instance)
         raise serializers.ValidationError(_("Solo puedes eliminar tus propios perfiles."))
+
+
+class ProfilePictureUpdateSerializer(serializers.Serializer):
+    profile = serializers.IntegerField(required=False)
+    picture = Base64ImageField(required=True, allow_null=False)
+
+    def _resolve_profile(self):
+        request = self.context["request"]
+        user = request.user
+        profile_model = get_profile_model_cls()
+        profile_id = self.validated_data.get("profile")
+        queryset = profile_model.objects.filter(user=user)
+
+        if profile_id is not None:
+            profile = queryset.filter(id=profile_id).first()
+        else:
+            profile = user.get_default_profile()
+            if profile is None:
+                profile = queryset.first()
+
+        if profile is None:
+            raise serializers.ValidationError({"profile": _("Perfil no encontrado.")})
+        if not hasattr(profile, "picture"):
+            raise serializers.ValidationError(
+                {"picture": _("El modelo de perfil no tiene el campo picture.")}
+            )
+        return profile
+
+    def save(self, **kwargs):
+        profile = self._resolve_profile()
+        optimized_picture = optimize_profile_picture(self.validated_data["picture"])
+        profile.picture = optimized_picture
+        profile.save()
+        return profile

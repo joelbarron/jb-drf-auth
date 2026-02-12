@@ -8,6 +8,7 @@ dependencies = [
   "Django>=5.0",
   "djangorestframework>=3.15",
   "djangorestframework-simplejwt>=5.3",
+  "PyJWT>=2.7,<3",
   "drf-extra-fields>=3.7",
   "django-filter>=24.2",
   "django-safedelete>=1.4,<2.0",

@@ -9,6 +9,7 @@ class DevicePayloadSerializer(serializers.Serializer):
     platform = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     token = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    notification_token = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 
 def _safe_exclude_fields(model, fields):

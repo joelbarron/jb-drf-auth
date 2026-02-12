@@ -4,7 +4,7 @@ from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.utils.module_loading import import_string
 
-from .conf import get_setting
+from .conf import get_setting, get_social_settings
 
 def get_user_model_cls():
     return get_user_model()
@@ -98,6 +98,39 @@ def get_email_log_model_cls():
         ) from exc
 
     return apps.get_model(app_label, model_name)
+
+
+def get_social_account_model_cls():
+    model_path = get_setting("SOCIAL_ACCOUNT_MODEL")
+    if not model_path:
+        raise RuntimeError("Missing setting: JB_DRF_AUTH_SOCIAL_ACCOUNT_MODEL = 'app_label.ModelName'")
+
+    try:
+        app_label, model_name = model_path.split(".")
+    except ValueError as exc:
+        raise RuntimeError(
+            "Invalid JB_DRF_AUTH_SOCIAL_ACCOUNT_MODEL format. Expected 'app_label.ModelName'"
+        ) from exc
+
+    return apps.get_model(app_label, model_name)
+
+
+def get_social_provider(provider: str):
+    social_settings = get_social_settings()
+    providers = social_settings.get("PROVIDERS", {})
+    if not isinstance(providers, dict) or provider not in providers:
+        raise RuntimeError(f"Unsupported social provider: {provider}")
+
+    provider_cfg = providers.get(provider, {})
+    if not isinstance(provider_cfg, dict):
+        raise RuntimeError(f"Invalid social provider configuration for: {provider}")
+
+    provider_path = provider_cfg.get("CLASS")
+    if not provider_path:
+        raise RuntimeError(f"Missing social provider class for: {provider}")
+
+    provider_cls = import_string(provider_path)
+    return provider_cls(provider=provider, provider_settings=provider_cfg)
 
 
 def normalize_phone_number(raw_phone: str) -> str:

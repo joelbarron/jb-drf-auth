@@ -192,7 +192,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"login\": \"user@example.com\",\n  \"password\": \"secret123\",\n  \"client\": \"mobile\",\n  \"device\": {\n    \"platform\": \"ios\",\n    \"name\": \"iPhone\",\n    \"token\": \"optional_push_token\"\n  }\n}",
+              "raw": "{\n  \"login\": \"user@example.com\",\n  \"password\": \"secret123\",\n  \"client\": \"mobile\",\n  \"device\": {\n    \"platform\": \"ios\",\n    \"name\": \"iPhone\",\n    \"token\": \"device_identifier_optional\",\n    \"notification_token\": \"fcm_or_apns_token\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -211,7 +211,7 @@
                 ""
               ]
             },
-            "description": "Mobile login through /login/basic/. Device payload is required for client=mobile."
+            "description": "Mobile login through /login/basic/. Device payload is required for client=mobile and must include device.notification_token."
           },
           "response": []
         },
@@ -250,12 +250,209 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"profile\": {{profileId}},\n  \"client\": \"mobile\",\n  \"device\": {\n    \"platform\": \"android\",\n    \"name\": \"Pixel\",\n    \"token\": \"device_token\"\n  }\n}",
+              "raw": "{\n  \"profile\": {{profileId}},\n  \"client\": \"mobile\",\n  \"device\": {\n    \"platform\": \"android\",\n    \"name\": \"Pixel\",\n    \"token\": \"device_identifier\",\n    \"notification_token\": \"fcm_or_apns_token\"\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Social login (OIDC id_token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"google\",\n  \"id_token\": \"<oidc_id_token>\",\n  \"client\": \"web\",\n  \"terms_and_conditions_accepted\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/login/social/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "login",
+                "social",
+                ""
+              ]
+            },
+            "description": "Google/Apple social login using id_token."
+          },
+          "response": []
+        },
+        {
+          "name": "Social login (OIDC authorization code)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"google\",\n  \"authorization_code\": \"<oauth_authorization_code>\",\n  \"redirect_uri\": \"https://your-app.com/auth/callback/google\",\n  \"code_verifier\": \"<pkce_code_verifier>\",\n  \"client_id\": \"<google-web-client-id>\",\n  \"client\": \"web\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/login/social/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "login",
+                "social",
+                ""
+              ]
+            },
+            "description": "Google/Apple social login using authorization_code exchange on backend."
+          },
+          "response": []
+        },
+        {
+          "name": "Social login (Facebook)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"facebook\",\n  \"access_token\": \"<facebook_user_access_token>\",\n  \"client\": \"web\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/login/social/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "login",
+                "social",
+                ""
+              ]
+            },
+            "description": "Facebook social login using access_token."
+          },
+          "response": []
+        },
+        {
+          "name": "Social link",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"google\",\n  \"id_token\": \"<oidc_id_token>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/login/social/link/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "login",
+                "social",
+                "link",
+                ""
+              ]
+            },
+            "description": "Link social account to current authenticated user.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Social unlink",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"google\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/login/social/unlink/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "login",
+                "social",
+                "unlink",
+                ""
+              ]
+            },
+            "description": "Unlink social account from current authenticated user.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "response": []
@@ -767,6 +964,51 @@
                 "profiles",
                 "{{profileId}}",
                 ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update profile picture (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profile\": {{profileId}},\n  \"picture\": \"<base64-image>\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/profile/picture/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "profile",
+                "picture",
+                ""
+              ]
+            },
+            "description": "Dedicated endpoint to update profile picture independently.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
               ]
             }
           },

@@ -6,6 +6,7 @@ from jb_drf_auth.services.me import MeService
 from jb_drf_auth.services.otp import OtpService
 from jb_drf_auth.services.password_reset import PasswordResetService
 from jb_drf_auth.services.register import RegisterService
+from jb_drf_auth.services.social_auth import SocialAuthService
 from jb_drf_auth.services.tokens import TokensService
 from jb_drf_auth.services.user_settings import UserSettingsService
 
@@ -20,6 +21,7 @@ __all__ = [
     "OtpService",
     "PasswordResetService",
     "RegisterService",
+    "SocialAuthService",
     "TokensService",
     "UserSettingsService",
 ]

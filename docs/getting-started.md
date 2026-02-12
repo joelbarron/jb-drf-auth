@@ -17,6 +17,7 @@ This package is designed to be installed via PyPI and reused across multiple Dja
 ## Related Docs
 
 - API contract: `API_CONTRACT.md`
+- Social auth guide: `social-auth.md`
 - Migration guide: `migration.md`
 - Release guide: `release.md`
 
@@ -93,6 +94,12 @@ JB_DRF_AUTH_ADMIN_BOOTSTRAP_TOKEN = "super-secret"
 JB_DRF_AUTH_PROFILE_PICTURE_UPLOAD_TO = "uploads/users/profile-pictures"
 JB_DRF_AUTH_PERSON_PICTURE_UPLOAD_TO = "uploads/users/profile-pictures"
 JB_DRF_AUTH_PERSON_ID_DOCUMENTS_UPLOAD_TO = "uploads/people/id-documents"
+JB_DRF_AUTH_PROFILE_PICTURE_OPTIMIZE = True
+JB_DRF_AUTH_PROFILE_PICTURE_MAX_BYTES = 1024 * 1024
+JB_DRF_AUTH_PROFILE_PICTURE_MAX_WIDTH = 1080
+JB_DRF_AUTH_PROFILE_PICTURE_MAX_HEIGHT = 1080
+JB_DRF_AUTH_PROFILE_PICTURE_JPEG_QUALITY = 85
+JB_DRF_AUTH_PROFILE_PICTURE_MIN_JPEG_QUALITY = 65
 JB_DRF_AUTH_SMS_PROVIDER = "jb_drf_auth.providers.aws_sns.AwsSnsSmsProvider"
 JB_DRF_AUTH_SMS_SENDER_ID = "YourBrand"
 JB_DRF_AUTH_SMS_TYPE = "Transactional"
@@ -130,6 +137,17 @@ Debug SMS provider (local development):
 JB_DRF_AUTH_SMS_PROVIDER = "jb_drf_auth.providers.console_sms.ConsoleSmsProvider"
 ```
 
+Twilio SMS provider:
+
+```python
+JB_DRF_AUTH_SMS_PROVIDER = "jb_drf_auth.providers.twilio_sms.TwilioSmsProvider"
+JB_DRF_AUTH_TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID")
+JB_DRF_AUTH_TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN")
+# Configure one of these:
+JB_DRF_AUTH_TWILIO_FROM_NUMBER = env("TWILIO_FROM_NUMBER", default=None)
+JB_DRF_AUTH_TWILIO_MESSAGING_SERVICE_SID = env("TWILIO_MESSAGING_SERVICE_SID", default=None)
+```
+
 You can also configure everything using a single dict (copy/paste ready):
 
 ```python
@@ -149,6 +167,12 @@ JB_DRF_AUTH = {
     "AUTH_SINGLE_SESSION_ON_MOBILE": False,
     "ADMIN_BOOTSTRAP_TOKEN": "super-secret",
     "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
+    "PROFILE_PICTURE_OPTIMIZE": True,
+    "PROFILE_PICTURE_MAX_BYTES": 1024 * 1024,
+    "PROFILE_PICTURE_MAX_WIDTH": 1080,
+    "PROFILE_PICTURE_MAX_HEIGHT": 1080,
+    "PROFILE_PICTURE_JPEG_QUALITY": 85,
+    "PROFILE_PICTURE_MIN_JPEG_QUALITY": 65,
     "PERSON_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
     "PERSON_ID_DOCUMENTS_UPLOAD_TO": "uploads/people/id-documents",
     "PROFILE_ROLE_CHOICES": (

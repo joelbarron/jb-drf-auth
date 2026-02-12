@@ -41,6 +41,46 @@ Why this is required:
   - `Publish to TestPyPI` (on RC tags)
   - `Publish to PyPI` (on published releases)
 
+### Exact steps to create `RELEASE_BOT_TOKEN` (Fine-grained PAT)
+
+1. Sign in with the bot/service GitHub account (or a dedicated release account).
+2. Open `Settings` -> `Developer settings` -> `Personal access tokens` -> `Fine-grained tokens`.
+3. Click `Generate new token`.
+4. Configure:
+   - `Token name`: `jb-drf-auth-release-bot`
+   - `Expiration`: according to your policy (for example 90 days)
+   - `Resource owner`: your user/org that owns this repository
+   - `Repository access`: `Only select repositories`
+   - Select repository: `jb-drf-auth`
+5. Under `Repository permissions`, grant:
+   - `Contents`: `Read and write`
+   - `Metadata`: `Read` (usually default)
+6. Click `Generate token`.
+7. Copy the token value immediately (shown once).
+
+### Store token as GitHub Actions secret
+
+1. Open repository `Settings` -> `Secrets and variables` -> `Actions`.
+2. Click `New repository secret`.
+3. Name: `RELEASE_BOT_TOKEN`.
+4. Paste the token and save.
+
+### Quick validation
+
+1. Run `Release Automation` with an RC input.
+2. Confirm:
+   - `Release Automation` succeeds.
+   - Commit and RC tag are pushed.
+   - `Publish to TestPyPI` is triggered automatically.
+
+### Classic PAT fallback (less recommended)
+
+If your org does not allow fine-grained PATs, use a classic PAT with:
+
+- `repo` scope
+
+Then save it as the same secret name: `RELEASE_BOT_TOKEN`.
+
 Trigger it manually from GitHub Actions with:
 
 - `release_type`: `rc` or `stable`
@@ -146,6 +186,12 @@ Run these commands locally (inside a virtual environment) **before any release**
 
 ```bash
 sh test_before_publish.sh
+```
+
+And run API docs sync checks:
+
+```bash
+python scripts/check_api_docs.py
 ```
 
 If any step fails, **DO NOT RELEASE**.
