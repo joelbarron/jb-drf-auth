@@ -229,6 +229,40 @@ For already-authenticated users:
 - Do not use provider access token as session token for your API.
 - Rotate/revoke your app sessions with backend JWT policies only.
 
+## Logging and troubleshooting
+
+The library now logs social auth events in these logger namespaces:
+
+- `jb_drf_auth.views.social_auth`
+- `jb_drf_auth.services.social_auth`
+- `jb_drf_auth.providers.oidc`
+- `jb_drf_auth.providers.facebook_oauth`
+
+Recommended Django logging config (example):
+
+```python
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "jb_drf_auth": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}
+```
+
+For local diagnostics only, you can also enable:
+
+```python
+JB_DRF_AUTH = {
+    "SOCIAL": {
+        "DEBUG_ERRORS": True,
+    }
+}
+```
+
+Keep `DEBUG_ERRORS=False` in production.
+
 ## Current scope and next steps
 
 Current implementation:

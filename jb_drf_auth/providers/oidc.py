@@ -1,4 +1,5 @@
 import json
+import logging
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -10,6 +11,8 @@ from django.utils.translation import gettext_lazy as _
 from jb_drf_auth.conf import get_social_settings
 from jb_drf_auth.exceptions import SocialAuthError
 from jb_drf_auth.providers.base import BaseSocialProvider, SocialIdentity
+
+logger = logging.getLogger("jb_drf_auth.providers.oidc")
 
 
 class OidcSocialProvider(BaseSocialProvider):
@@ -39,6 +42,13 @@ class OidcSocialProvider(BaseSocialProvider):
                 elif provider_error == "invalid_client":
                     error_code = "social_invalid_client"
                     error_detail = _("Social provider client credentials are invalid.")
+            logger.exception(
+                "oidc_code_exchange_failed provider=%s status=%s provider_error=%s mapped_code=%s",
+                self.provider,
+                exc.code,
+                provider_error or "unknown",
+                error_code,
+            )
             if self._social_debug_enabled():
                 raise SocialAuthError(
                     _("%(detail)s provider_error=%(provider_error)s status=%(status)s")
@@ -52,6 +62,11 @@ class OidcSocialProvider(BaseSocialProvider):
                 )
             raise SocialAuthError(error_detail, status_code=401, code=error_code)
 
+        logger.exception(
+            "oidc_code_exchange_failed provider=%s error_type=%s",
+            self.provider,
+            type(exc).__name__,
+        )
         raise SocialAuthError(
             _("Could not exchange authorization_code with social provider."),
             status_code=401,
@@ -106,6 +121,13 @@ class OidcSocialProvider(BaseSocialProvider):
             method="POST",
         )
         try:
+            logger.info(
+                "oidc_code_exchange_started provider=%s client_id_present=%s redirect_uri_present=%s pkce_verifier_present=%s",
+                self.provider,
+                bool(client_id),
+                bool(payload.get("redirect_uri")),
+                bool(payload.get("code_verifier")),
+            )
             with urlopen(request, timeout=10) as response:
                 token_payload = json.loads(response.read().decode("utf-8"))
         except (HTTPError, URLError, TimeoutError) as exc:
@@ -123,7 +145,10 @@ class OidcSocialProvider(BaseSocialProvider):
     def authenticate(self, payload: dict) -> SocialIdentity:
         id_token = payload.get("id_token")
         if not id_token and payload.get("authorization_code"):
+            logger.info("oidc_auth_with_authorization_code provider=%s", self.provider)
             id_token = self._exchange_authorization_code(payload)
+        elif id_token:
+            logger.info("oidc_auth_with_id_token provider=%s", self.provider)
         if not id_token:
             raise SocialAuthError(
                 _("id_token or authorization_code is required for social login."),
@@ -162,6 +187,7 @@ class OidcSocialProvider(BaseSocialProvider):
                 issuer=issuer,
             )
         except PyJWTError:
+            logger.warning("oidc_token_validation_failed provider=%s", self.provider)
             raise SocialAuthError(
                 _("Social token is invalid or expired."),
                 status_code=401,
@@ -169,12 +195,14 @@ class OidcSocialProvider(BaseSocialProvider):
             )
         provider_user_id = claims.get("sub")
         if not provider_user_id:
+            logger.warning("oidc_token_missing_sub provider=%s", self.provider)
             raise SocialAuthError(
                 _("OIDC token missing 'sub' claim."),
                 status_code=401,
                 code="social_invalid_token",
             )
 
+        logger.info("oidc_auth_success provider=%s has_email=%s", self.provider, bool(claims.get("email")))
         return SocialIdentity(
             provider=self.provider,
             provider_user_id=str(provider_user_id),

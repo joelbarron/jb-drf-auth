@@ -1,4 +1,5 @@
 import uuid
+import logging
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -20,6 +21,7 @@ from jb_drf_auth.utils import (
 
 
 User = get_user_model()
+logger = logging.getLogger("jb_drf_auth.services.social_auth")
 
 
 class SocialAuthService:
@@ -102,6 +104,12 @@ class SocialAuthService:
             role=role or get_setting("DEFAULT_PROFILE_ROLE"),
             is_default=True,
         )
+        logger.info(
+            "social_user_created provider=%s user_id=%s has_email=%s",
+            identity.provider,
+            getattr(user, "id", None),
+            bool(identity.email),
+        )
         return user
 
     @staticmethod
@@ -126,6 +134,11 @@ class SocialAuthService:
                     return
                 payload = response.read(max_bytes + 1)
         except (URLError, TimeoutError, ValueError, OSError):
+            logger.warning(
+                "social_picture_download_failed profile_id=%s picture_url_present=%s",
+                getattr(profile, "pk", None),
+                bool(picture_url),
+            )
             return
 
         if not payload:
@@ -141,6 +154,12 @@ class SocialAuthService:
 
         filename = f"social-{profile.pk}-{uuid.uuid4().hex[:10]}.{extension}"
         profile.picture.save(filename, ContentFile(payload), save=True)
+        logger.info(
+            "social_picture_synced profile_id=%s bytes=%s content_type=%s",
+            getattr(profile, "pk", None),
+            len(payload),
+            content_type,
+        )
 
     @staticmethod
     def login_or_register(
@@ -151,6 +170,11 @@ class SocialAuthService:
         role: str | None = None,
         terms_and_conditions_accepted: bool = False,
     ):
+        logger.info(
+            "social_login_or_register_started provider=%s client=%s",
+            provider_name,
+            client,
+        )
         social_provider = get_social_provider(provider_name)
         identity = social_provider.authenticate(payload)
 
@@ -167,10 +191,21 @@ class SocialAuthService:
 
         if social_account:
             user = social_account.user
+            logger.info(
+                "social_account_found provider=%s user_id=%s",
+                identity.provider,
+                getattr(user, "id", None),
+            )
         else:
             if social_settings.get("LINK_BY_EMAIL", True) and identity.email:
                 user = User.objects.filter(email__iexact=identity.email).first()
                 linked_existing = user is not None
+                if linked_existing:
+                    logger.info(
+                        "social_linked_existing_by_email provider=%s user_id=%s",
+                        identity.provider,
+                        getattr(user, "id", None),
+                    )
 
             if user is None:
                 if not social_settings.get("AUTO_CREATE_USER", True):
@@ -221,10 +256,22 @@ class SocialAuthService:
         response["user_created"] = user_created
         response["linked_existing_user"] = linked_existing
         response["social_account_id"] = social_account.pk
+        logger.info(
+            "social_login_or_register_success provider=%s user_id=%s user_created=%s linked_existing_user=%s",
+            identity.provider,
+            getattr(user, "id", None),
+            user_created,
+            linked_existing,
+        )
         return response
 
     @staticmethod
     def link_account(user, provider_name: str, payload: dict):
+        logger.info(
+            "social_link_started provider=%s user_id=%s",
+            provider_name,
+            getattr(user, "id", None),
+        )
         social_provider = get_social_provider(provider_name)
         identity = social_provider.authenticate(payload)
 
@@ -235,6 +282,12 @@ class SocialAuthService:
             provider_user_id=identity.provider_user_id,
         ).select_related("user").first()
         if existing and existing.user_id != user.id:
+            logger.warning(
+                "social_link_rejected provider=%s target_user_id=%s existing_user_id=%s",
+                identity.provider,
+                getattr(user, "id", None),
+                existing.user_id,
+            )
             raise SocialAuthError(
                 _("This social account is already linked to another user."),
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -258,6 +311,12 @@ class SocialAuthService:
         if profile is not None:
             SocialAuthService._sync_profile_picture(profile, identity.picture_url)
 
+        logger.info(
+            "social_link_success provider=%s user_id=%s created=%s",
+            identity.provider,
+            getattr(user, "id", None),
+            created,
+        )
         return {
             "detail": _("Social account linked successfully."),
             "provider": identity.provider,
@@ -267,12 +326,22 @@ class SocialAuthService:
 
     @staticmethod
     def unlink_account(user, provider_name: str):
+        logger.info(
+            "social_unlink_started provider=%s user_id=%s",
+            provider_name,
+            getattr(user, "id", None),
+        )
         social_account_model = get_social_account_model_cls()
         social_account = social_account_model.objects.filter(
             user=user,
             provider=provider_name,
         ).first()
         if not social_account:
+            logger.warning(
+                "social_unlink_not_found provider=%s user_id=%s",
+                provider_name,
+                getattr(user, "id", None),
+            )
             raise SocialAuthError(
                 _("No linked social account found for this provider."),
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -280,6 +349,11 @@ class SocialAuthService:
             )
 
         social_account.delete()
+        logger.info(
+            "social_unlink_success provider=%s user_id=%s",
+            provider_name,
+            getattr(user, "id", None),
+        )
         return {
             "detail": _("Social account unlinked successfully."),
             "provider": provider_name,
