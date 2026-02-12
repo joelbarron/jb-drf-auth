@@ -1,6 +1,6 @@
 [project]
 name = "jb-drf-auth"
-version = "0.1.1"
+version = "0.1.2rc1"
 description = "Reusable auth + profiles foundations for Django/DRF projects"
 readme = "README.md"
 requires-python = ">=3.11"
