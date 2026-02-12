@@ -75,11 +75,6 @@ class AbstractJbPersonDataModel(models.Model):
         abstract = True
 
 
-# Backwards-compatible aliases. Prefer AbstractUserOwnedModel/AbstractProfileOwnedModel.
-UserOwnedModel = AbstractUserOwnedModel
-ProfileOwnedModel = AbstractProfileOwnedModel
-
-
 class AbstractPersonCore(AbstractJbPersonDataModel):
     """
     Abstract core for person identity fields.
@@ -197,7 +192,7 @@ class AbstractJbUser(AbstractSafeDeleteModel, AbstractTimeStampedModel, Abstract
         self.settings = payload
 
 
-class AbstractJbProfile(AbstractSafeDeleteModel, AbstractTimeStampedModel, AbstractPersonCore):
+class AbstractJbProfile(AbstractSafeDeleteModel, AbstractTimeStampedModel, AbstractJbPersonDataModel):
     """
     Abstract base for Profile.
     NOTE: A User has MANY profiles.
