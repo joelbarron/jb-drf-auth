@@ -7,6 +7,7 @@ import jwt
 from jwt import PyJWTError
 from django.utils.translation import gettext_lazy as _
 
+from jb_drf_auth.conf import get_social_settings
 from jb_drf_auth.exceptions import SocialAuthError
 from jb_drf_auth.providers.base import BaseSocialProvider, SocialIdentity
 
@@ -15,6 +16,47 @@ class OidcSocialProvider(BaseSocialProvider):
     """
     OIDC provider that validates id_token against issuer audience and JWKS.
     """
+
+    def _social_debug_enabled(self) -> bool:
+        return bool(get_social_settings().get("DEBUG_ERRORS", False))
+
+    def _raise_exchange_error(self, exc):
+        if isinstance(exc, HTTPError):
+            error_code = "social_token_exchange_failed"
+            error_detail = _("Could not exchange authorization_code with social provider.")
+            provider_error = None
+            try:
+                payload = json.loads(exc.read().decode("utf-8"))
+            except Exception:
+                payload = {}
+            if isinstance(payload, dict):
+                provider_error = payload.get("error")
+                if provider_error == "invalid_grant":
+                    error_code = "social_invalid_grant"
+                    error_detail = _(
+                        "authorization_code is invalid, expired, already used, or redirect_uri mismatched."
+                    )
+                elif provider_error == "invalid_client":
+                    error_code = "social_invalid_client"
+                    error_detail = _("Social provider client credentials are invalid.")
+            if self._social_debug_enabled():
+                raise SocialAuthError(
+                    _("%(detail)s provider_error=%(provider_error)s status=%(status)s")
+                    % {
+                        "detail": error_detail,
+                        "provider_error": provider_error or "unknown",
+                        "status": exc.code,
+                    },
+                    status_code=401,
+                    code=error_code,
+                )
+            raise SocialAuthError(error_detail, status_code=401, code=error_code)
+
+        raise SocialAuthError(
+            _("Could not exchange authorization_code with social provider."),
+            status_code=401,
+            code="social_token_exchange_failed",
+        )
 
     def _exchange_authorization_code(self, payload: dict) -> str:
         token_url = self.provider_settings.get("TOKEN_URL")
@@ -66,12 +108,8 @@ class OidcSocialProvider(BaseSocialProvider):
         try:
             with urlopen(request, timeout=10) as response:
                 token_payload = json.loads(response.read().decode("utf-8"))
-        except (HTTPError, URLError, TimeoutError):
-            raise SocialAuthError(
-                _("Could not exchange authorization_code with social provider."),
-                status_code=401,
-                code="social_token_exchange_failed",
-            )
+        except (HTTPError, URLError, TimeoutError) as exc:
+            self._raise_exchange_error(exc)
 
         id_token = token_payload.get("id_token")
         if not id_token:

@@ -2,6 +2,10 @@
 
 This document explains how to integrate social login with `jb-drf-auth` and what frontend apps should implement.
 
+For Google Cloud Console setup (OAuth consent screen, origins, redirect URIs), see:
+
+- `google-oauth-setup.md`
+
 Current backend endpoint:
 
 - `POST /auth/login/social/`
@@ -43,6 +47,7 @@ JB_DRF_AUTH = {
     "SOCIAL_ACCOUNT_MODEL": "authentication.SocialAccount",
     # Social auth behavior
     "SOCIAL": {
+        "DEBUG_ERRORS": env.bool("SOCIAL_ACCOUNT_DEBUG_ERRORS", default=False),  # True only for local debugging
         "AUTO_CREATE_USER": True,
         "LINK_BY_EMAIL": True,
         "REQUIRE_VERIFIED_EMAIL": True,
@@ -53,13 +58,16 @@ JB_DRF_AUTH = {
         "PROVIDERS": {
             "google": {
                 "CLASS": "jb_drf_auth.providers.google_oidc.GoogleOidcProvider",
-                "CLIENT_IDS": ("<google-web-client-id>", "<google-ios-client-id>"),
+                "CLIENT_ID_WEB": env("GOOGLE_WEB_CLIENT_ID"),
+                "CLIENT_ID_IOS": env("GOOGLE_IOS_CLIENT_ID", default=None),
+                "CLIENT_ID_ANDROID": env("GOOGLE_ANDROID_CLIENT_ID", default=None),
                 "ISSUER": "https://accounts.google.com",
                 "JWKS_URL": "https://www.googleapis.com/oauth2/v3/certs",
             },
             "apple": {
                 "CLASS": "jb_drf_auth.providers.apple_oidc.AppleOidcProvider",
-                "CLIENT_IDS": ("<apple-services-id-or-bundle-id>",),
+                "CLIENT_ID": env("APPLE_SERVICES_ID_OR_BUNDLE_ID"),
+                "CLIENT_SECRET": env("APPLE_CLIENT_SECRET", default=None),
                 "ISSUER": "https://appleid.apple.com",
                 "JWKS_URL": "https://appleid.apple.com/auth/keys",
             },
@@ -74,6 +82,14 @@ JB_DRF_AUTH = {
     },
 }
 ```
+
+You can configure one or many client IDs using discrete keys (`CLIENT_ID`, `CLIENT_ID_WEB`,
+`CLIENT_ID_IOS`, `CLIENT_ID_ANDROID`). The library normalizes them internally to `CLIENT_IDS`
+for OIDC audience validation. You do not need all three:
+
+- Web-only project: configure only web client ID.
+- Mobile-only project: configure only iOS/Android IDs.
+- Multi-platform project: configure all platform IDs.
 
 ## API contract (social login)
 

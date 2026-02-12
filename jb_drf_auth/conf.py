@@ -72,6 +72,7 @@ DEFAULTS = {
     },
     "SOCIAL_ACCOUNT_MODEL": None,  # required for social login: "authentication.SocialAccount"
     "SOCIAL": {
+        "DEBUG_ERRORS": False,
         "AUTO_CREATE_USER": True,
         "LINK_BY_EMAIL": True,
         "REQUIRE_VERIFIED_EMAIL": True,
@@ -147,6 +148,34 @@ def get_social_settings():
                 providers[provider_name] = {**base_cfg, **provider_cfg}
             else:
                 providers[provider_name] = provider_cfg
+
+    # Normalize providers and remove empty client IDs.
+    for provider_name, provider_cfg in list(providers.items()):
+        if not isinstance(provider_cfg, dict):
+            continue
+        client_ids = provider_cfg.get("CLIENT_IDS")
+        if isinstance(client_ids, str):
+            client_ids = (client_ids,)
+        normalized_client_ids = []
+        if isinstance(client_ids, (tuple, list)):
+            normalized_client_ids.extend(client_ids)
+        # Allow discrete keys instead of a tuple in integrator settings.
+        normalized_client_ids.extend(
+            [
+                provider_cfg.get("CLIENT_ID"),
+                provider_cfg.get("CLIENT_ID_WEB"),
+                provider_cfg.get("CLIENT_ID_IOS"),
+                provider_cfg.get("CLIENT_ID_ANDROID"),
+            ]
+        )
+        cleaned = []
+        for value in normalized_client_ids:
+            if not isinstance(value, str):
+                continue
+            value = value.strip()
+            if value and value not in cleaned:
+                cleaned.append(value)
+        providers[provider_name]["CLIENT_IDS"] = tuple(cleaned)
 
     merged["PROVIDERS"] = providers
     return merged

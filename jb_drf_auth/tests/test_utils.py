@@ -5,16 +5,45 @@ from unittest.mock import patch
 
 import django
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import override_settings
 from PIL import Image
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jb_drf_auth.tests.settings")
 django.setup()
 
+from jb_drf_auth.conf import get_social_settings
 from jb_drf_auth import utils
 from jb_drf_auth.image_utils import optimize_profile_picture
 
 
 class UtilsTests(unittest.TestCase):
+    @override_settings(
+        JB_DRF_AUTH={
+            "SOCIAL": {
+                "PROVIDERS": {
+                    "google": {
+                        "CLIENT_ID_WEB": "web-id",
+                        "CLIENT_ID_IOS": "ios-id",
+                        "CLIENT_ID_ANDROID": "",
+                    },
+                    "apple": {
+                        "CLIENT_ID": "apple-id",
+                    },
+                }
+            }
+        }
+    )
+    def test_get_social_settings_builds_client_ids_from_discrete_keys(self):
+        social = get_social_settings()
+        self.assertEqual(
+            social["PROVIDERS"]["google"]["CLIENT_IDS"],
+            ("web-id", "ios-id"),
+        )
+        self.assertEqual(
+            social["PROVIDERS"]["apple"]["CLIENT_IDS"],
+            ("apple-id",),
+        )
+
     @patch("jb_drf_auth.utils.get_setting")
     def test_normalize_phone_number_requires_country_code_without_default(self, mock_get_setting):
         mock_get_setting.side_effect = lambda name: {

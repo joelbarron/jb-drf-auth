@@ -35,6 +35,15 @@ class SocialLoginSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {"detail": _("id_token or authorization_code is required for this provider.")}
                 )
+            if data.get("authorization_code"):
+                if not data.get("redirect_uri"):
+                    raise serializers.ValidationError(
+                        {"detail": _("redirect_uri is required for authorization_code flow.")}
+                    )
+                if not data.get("client_id"):
+                    raise serializers.ValidationError(
+                        {"detail": _("client_id is required for authorization_code flow.")}
+                    )
         if provider == "facebook" and not data.get("access_token"):
             raise serializers.ValidationError({"detail": _("access_token is required for Facebook.")})
         return data
@@ -82,6 +91,15 @@ class SocialLinkSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     {"detail": _("id_token or authorization_code is required for this provider.")}
                 )
+            if data.get("authorization_code"):
+                if not data.get("redirect_uri"):
+                    raise serializers.ValidationError(
+                        {"detail": _("redirect_uri is required for authorization_code flow.")}
+                    )
+                if not data.get("client_id"):
+                    raise serializers.ValidationError(
+                        {"detail": _("client_id is required for authorization_code flow.")}
+                    )
         if provider == "facebook" and not data.get("access_token"):
             raise serializers.ValidationError({"detail": _("access_token is required for Facebook.")})
         return data
