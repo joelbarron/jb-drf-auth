@@ -12,8 +12,6 @@ from .base import (
     AbstractSafeDeleteModel,
     AbstractTimeStampedModel,
     AbstractUserOwnedModel,
-    ProfileOwnedModel,
-    UserOwnedModel,
 )
 
 __all__ = [
@@ -30,6 +28,4 @@ __all__ = [
     "AbstractSafeDeleteModel",
     "AbstractUserOwnedModel",
     "AbstractProfileOwnedModel",
-    "UserOwnedModel",
-    "ProfileOwnedModel",
 ]

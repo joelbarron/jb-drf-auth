@@ -52,7 +52,6 @@ class AbstractProfileOwnedModel(models.Model):
     class Meta:
         abstract = True
 
-
 class AbstractJbPersonDataModel(models.Model):
     """
     Abstract base for person-like profile fields.

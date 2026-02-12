@@ -288,12 +288,24 @@ class SocialAccount(AbstractJbSocialAccount):
     pass
 ```
 
-`AbstractJbProfile` includes person fields like `first_name`, `last_name_1`, `last_name_2`,
-`national_id`, `tax_id`, `birthday`, `gender`, contact phones/emails, address fields,
-emergency contact, and identity document files.
-Phone fields are stored in E.164 format (for example: `+525512345678`).
+`AbstractJbProfile` includes core person fields: `first_name`, `last_name_1`, `last_name_2`,
+`birthday`, and `gender`.
+For extended person data (`national_id`, `tax_id`, contact phones/emails, address fields,
+emergency contact, identity document files), use `AbstractPersonCore` in your own models.
+Phone fields in `AbstractPersonCore` are stored in E.164 format (for example: `+525512345678`).
 Both `AbstractJbUser` and `AbstractJbProfile` include a `settings` JSON field for flexible app-level preferences.
 `language` and `timezone` are stored inside `user.settings` and exposed as user-level properties.
+
+Example for extended person models:
+
+```python
+from django.db import models
+from jb_drf_auth.models import AbstractPersonCore
+
+
+class Patient(AbstractPersonCore):
+    profile = models.ForeignKey("authentication.Profile", on_delete=models.CASCADE)
+```
 
 Reusable ownership base models are also available:
 
