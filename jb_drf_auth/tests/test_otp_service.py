@@ -13,6 +13,42 @@ from jb_drf_auth.services.otp import OtpService
 
 class OtpServiceTests(unittest.TestCase):
     @patch("jb_drf_auth.services.otp.get_setting")
+    @patch("jb_drf_auth.services.otp.get_otp_model_cls")
+    @patch("jb_drf_auth.services.otp.User")
+    def test_request_otp_code_returns_user_exist_flag(
+        self,
+        user_cls,
+        get_otp_model_cls,
+        get_setting,
+    ):
+        get_setting.side_effect = lambda key: {
+            "OTP_LENGTH": 6,
+            "OTP_RESEND_COOLDOWN_SECONDS": 60,
+            "OTP_TTL_SECONDS": 300,
+        }[key]
+
+        latest_qs = MagicMock()
+        latest_qs.order_by.return_value.first.return_value = None
+        latest_qs.filter.return_value = latest_qs
+
+        otp_model = MagicMock()
+        otp_model.objects.filter.return_value = latest_qs
+        otp_model.objects.create.return_value = SimpleNamespace(channel="email")
+        get_otp_model_cls.return_value = otp_model
+
+        user_cls.objects.filter.return_value.exists.return_value = True
+
+        result = OtpService.request_otp_code(
+            {
+                "channel": "email",
+                "email": "user@example.com",
+            }
+        )
+
+        self.assertEqual(result["user_exist"], True)
+        self.assertEqual(result["channel"], "email")
+
+    @patch("jb_drf_auth.services.otp.get_setting")
     @patch("jb_drf_auth.services.otp.ClientService.response_for_client")
     @patch("jb_drf_auth.services.otp.TokensService.get_tokens_for_user")
     @patch("jb_drf_auth.services.otp.get_profile_model_cls")
@@ -77,4 +113,3 @@ class OtpServiceTests(unittest.TestCase):
             phone="+525512345674",
             is_active=True,
         )
-

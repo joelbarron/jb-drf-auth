@@ -1,6 +1,12 @@
 # jb-drf-auth
 
+[![PyPI Version](https://img.shields.io/pypi/v/jb-drf-auth?label=PyPI)](https://pypi.org/project/jb-drf-auth/)
+[![TestPyPI](https://img.shields.io/badge/TestPyPI-jb--drf--auth-1f6feb)](https://test.pypi.org/project/jb-drf-auth/)
+
 Reusable authentication module for Django + Django REST Framework.
+
+PyPI: https://pypi.org/project/jb-drf-auth/  
+TestPyPI: https://test.pypi.org/project/jb-drf-auth/
 
 `jb-drf-auth` is a reusable foundation for authentication flows across projects, including:
 

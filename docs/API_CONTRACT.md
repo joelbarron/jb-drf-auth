@@ -395,7 +395,8 @@ Success `201`:
 ```json
 {
   "detail": "Código enviado exitosamente.",
-  "channel": "sms"
+  "channel": "sms",
+  "user_exist": true
 }
 ```
 

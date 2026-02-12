@@ -528,7 +528,7 @@
                 ""
               ]
             },
-            "description": "Example 201: {\n  \"detail\": \"Código enviado exitosamente.\",\n  \"channel\": \"sms\"\n}"
+            "description": "Example 201: {\n  \"detail\": \"Código enviado exitosamente.\",\n  \"channel\": \"sms\",\n  \"userExist\": true\n}"
           },
           "response": []
         },

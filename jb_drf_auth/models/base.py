@@ -27,7 +27,7 @@ class AbstractSafeDeleteModel(SafeDeleteModel):
         abstract = True
 
 
-class UserOwnedModel(models.Model):
+class AbstractUserOwnedModel(models.Model):
     """
     Abstract base for models owned by a user.
     """
@@ -38,7 +38,7 @@ class UserOwnedModel(models.Model):
         abstract = True
 
 
-class ProfileOwnedModel(models.Model):
+class AbstractProfileOwnedModel(models.Model):
     """
     Abstract base for models owned by a profile.
     """
@@ -73,6 +73,11 @@ class AbstractJbPersonDataModel(models.Model):
 
     class Meta:
         abstract = True
+
+
+# Backwards-compatible aliases. Prefer AbstractUserOwnedModel/AbstractProfileOwnedModel.
+UserOwnedModel = AbstractUserOwnedModel
+ProfileOwnedModel = AbstractProfileOwnedModel
 
 
 class AbstractPersonCore(AbstractJbPersonDataModel):

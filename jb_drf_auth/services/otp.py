@@ -52,6 +52,12 @@ class OtpService:
                 raise serializers.ValidationError({"phone": str(exc)}) from exc
 
         otp_model = get_otp_model_cls()
+        user_exist = False
+        if email and User.objects.filter(email=email).exists():
+            user_exist = True
+        elif phone and User.objects.filter(phone=phone).exists():
+            user_exist = True
+
         cooldown_seconds = get_setting("OTP_RESEND_COOLDOWN_SECONDS")
         now = timezone.now()
         latest_qs = otp_model.objects.filter(
@@ -115,7 +121,11 @@ class OtpService:
             )
             print("Sending OTP code:", code)
 
-        return {"detail": _("Código enviado exitosamente."), "channel": otp.channel}
+        return {
+            "detail": _("Código enviado exitosamente."),
+            "channel": otp.channel,
+            "user_exist": user_exist,
+        }
 
     @staticmethod
     def verify_otp_code(data):

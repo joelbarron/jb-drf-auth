@@ -63,6 +63,8 @@ JB_DRF_AUTH = {
     "OTP_MODEL": "authentication.OtpCode",
     "SMS_LOG_MODEL": "authentication.SmsLog",
     "EMAIL_LOG_MODEL": "authentication.EmailLog",
+    # Required if you enable social login:
+    # "SOCIAL_ACCOUNT_MODEL": "authentication.SocialAccount",
     "FRONTEND_URL": env("FRONTEND_URL", default="http://localhost:3000"),
     "DEFAULT_FROM_EMAIL": "no-reply@your-domain.com",
     "AUTHENTICATION_TYPE": "both",  # "email", "username", "both"
@@ -253,6 +255,7 @@ from jb_drf_auth.models import (
     AbstractJbDevice,
     AbstractJbEmailLog,
     AbstractJbOtpCode,
+    AbstractJbSocialAccount,
     AbstractJbSmsLog,
 )
 
@@ -279,6 +282,10 @@ class SmsLog(AbstractJbSmsLog):
 
 class EmailLog(AbstractJbEmailLog):
     pass
+
+
+class SocialAccount(AbstractJbSocialAccount):
+    pass
 ```
 
 `AbstractJbProfile` includes person fields like `first_name`, `last_name_1`, `last_name_2`,
@@ -292,14 +299,14 @@ Reusable ownership base models are also available:
 
 ```python
 from django.db import models
-from jb_drf_auth.models import ProfileOwnedModel, UserOwnedModel
+from jb_drf_auth.models import AbstractProfileOwnedModel, AbstractUserOwnedModel
 
 
-class UserNote(UserOwnedModel):
+class UserNote(AbstractUserOwnedModel):
     title = models.CharField(max_length=100)
 
 
-class ProfileAddress(ProfileOwnedModel):
+class ProfileAddress(AbstractProfileOwnedModel):
     line_1 = models.CharField(max_length=255)
 ```
 

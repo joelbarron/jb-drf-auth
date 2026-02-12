@@ -1,4 +1,5 @@
 from .base import (
+    AbstractProfileOwnedModel,
     AbstractPersonCore,
     AbstractJbDevice,
     AbstractJbEmailLog,
@@ -10,6 +11,7 @@ from .base import (
     AbstractJbUser,
     AbstractSafeDeleteModel,
     AbstractTimeStampedModel,
+    AbstractUserOwnedModel,
     ProfileOwnedModel,
     UserOwnedModel,
 )
@@ -26,6 +28,8 @@ __all__ = [
     "AbstractJbSmsLog",
     "AbstractJbSocialAccount",
     "AbstractSafeDeleteModel",
+    "AbstractUserOwnedModel",
+    "AbstractProfileOwnedModel",
     "UserOwnedModel",
     "ProfileOwnedModel",
 ]
