@@ -11,6 +11,7 @@ from jb_drf_auth.serializers.social_auth import (
     SocialLoginSerializer,
     SocialUnlinkSerializer,
 )
+from jb_drf_auth.services.social_auth import SocialAuthService
 from jb_drf_auth.throttling import BasicLoginIPThrottle, BasicLoginIdentityThrottle
 
 logger = logging.getLogger("jb_drf_auth.views.social_auth")
@@ -68,6 +69,45 @@ class SocialLinkView(APIView):
             getattr(request.user, "id", None),
         )
         return Response(payload, status=status.HTTP_200_OK)
+
+
+class SocialPrecheckView(APIView):
+    permission_classes = []
+    throttle_classes = [BasicLoginIPThrottle, BasicLoginIdentityThrottle]
+
+    def post(self, request):
+        serializer = SocialLoginSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        try:
+            payload = {
+                "id_token": serializer.validated_data.get("id_token"),
+                "access_token": serializer.validated_data.get("access_token"),
+                "authorization_code": serializer.validated_data.get("authorization_code"),
+                "redirect_uri": serializer.validated_data.get("redirect_uri"),
+                "code_verifier": serializer.validated_data.get("code_verifier"),
+                "client_id": serializer.validated_data.get("client_id"),
+            }
+            response_payload = SocialAuthService.precheck(
+                provider_name=serializer.validated_data.get("provider"),
+                payload=payload,
+            )
+        except SocialAuthError as exc:
+            logger.warning(
+                "social_precheck_failed provider=%s code=%s status=%s client=%s",
+                serializer.validated_data.get("provider"),
+                exc.code,
+                exc.status_code,
+                serializer.validated_data.get("client"),
+            )
+            return Response({"detail": str(exc), "code": exc.code}, status=exc.status_code)
+        logger.info(
+            "social_precheck_success provider=%s social_account_exists=%s linked_existing_user=%s would_create_user=%s",
+            response_payload.get("provider"),
+            response_payload.get("social_account_exists"),
+            response_payload.get("linked_existing_user"),
+            response_payload.get("would_create_user"),
+        )
+        return Response(response_payload, status=status.HTTP_200_OK)
 
 
 class SocialUnlinkView(APIView):

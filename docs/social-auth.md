@@ -13,6 +13,7 @@ For Meta/Facebook app setup (app credentials, login product, redirect URIs), see
 Current backend endpoint:
 
 - `POST /auth/login/social/`
+- `POST /auth/login/social/precheck/`
 - `POST /auth/login/social/link/`
 - `POST /auth/login/social/unlink/`
 
@@ -168,6 +169,33 @@ Returns the same client-specific login payload as `/auth/login/basic/`, plus:
 - `user_created` (`true` when a new user was created)
 - `linked_existing_user` (`true` when existing user was linked by email)
 - `social_account_id`
+
+## API contract (social precheck)
+
+### Endpoint
+
+- `POST /auth/login/social/precheck/`
+
+### Request
+
+Uses the same payload as `POST /auth/login/social/`.
+
+### Success response (`200`)
+
+```json
+{
+  "provider": "google",
+  "email": "user@example.com",
+  "email_verified": true,
+  "social_account_exists": false,
+  "linked_existing_user": true,
+  "user_exists": true,
+  "would_create_user": false,
+  "can_login": true
+}
+```
+
+This endpoint validates provider token and returns account existence flags, but does not create/link accounts or issue JWTs.
 
 ### Common errors
 

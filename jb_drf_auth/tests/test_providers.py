@@ -8,6 +8,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jb_drf_auth.tests.settings")
 django.setup()
 
 from jb_drf_auth.providers.aws_sns import AwsSnsSmsProvider
+from jb_drf_auth.providers.console_email import ConsoleEmailProvider
 from jb_drf_auth.providers.console_sms import ConsoleSmsProvider
 from jb_drf_auth.providers.django_email import DjangoEmailProvider
 
@@ -55,6 +56,22 @@ class ConsoleSmsProviderTests(unittest.TestCase):
         print_mock.assert_called_once()
         self.assertEqual(response["provider"], "console")
         self.assertEqual(response["phone_number"], "+15551112222")
+
+
+class ConsoleEmailProviderTests(unittest.TestCase):
+    @patch("builtins.print")
+    def test_send_email_prints_and_returns_payload(self, print_mock):
+        provider = ConsoleEmailProvider()
+        response = provider.send_email(
+            "user@example.com",
+            "Reset password",
+            "text body",
+            "<p>html body</p>",
+        )
+        print_mock.assert_called_once()
+        self.assertEqual(response["provider"], "console")
+        self.assertEqual(response["to_email"], "user@example.com")
+        self.assertEqual(response["subject"], "Reset password")
 
 
 class DjangoEmailProviderTests(unittest.TestCase):

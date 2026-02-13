@@ -266,6 +266,41 @@ class SocialAuthService:
         return response
 
     @staticmethod
+    def precheck(provider_name: str, payload: dict):
+        social_provider = get_social_provider(provider_name)
+        identity = social_provider.authenticate(payload)
+
+        social_account_model = get_social_account_model_cls()
+        social_settings = get_social_settings()
+        link_by_email = bool(social_settings.get("LINK_BY_EMAIL", True))
+        auto_create_user = bool(social_settings.get("AUTO_CREATE_USER", True))
+
+        social_account = social_account_model.objects.filter(
+            provider=identity.provider,
+            provider_user_id=identity.provider_user_id,
+        ).select_related("user").first()
+
+        user_by_email = None
+        if not social_account and link_by_email and identity.email:
+            user_by_email = User.objects.filter(email__iexact=identity.email).first()
+
+        social_account_exists = social_account is not None
+        linked_existing_user = user_by_email is not None
+        user_exists = social_account_exists or linked_existing_user
+        would_create_user = (not user_exists) and auto_create_user
+
+        return {
+            "provider": identity.provider,
+            "email": identity.email,
+            "email_verified": bool(identity.email_verified),
+            "social_account_exists": social_account_exists,
+            "linked_existing_user": linked_existing_user,
+            "user_exists": user_exists,
+            "would_create_user": would_create_user,
+            "can_login": social_account_exists or linked_existing_user or auto_create_user,
+        }
+
+    @staticmethod
     def link_account(user, provider_name: str, payload: dict):
         logger.info(
             "social_link_started provider=%s user_id=%s",

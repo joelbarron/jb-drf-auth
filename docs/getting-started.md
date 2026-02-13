@@ -139,6 +139,12 @@ Debug SMS provider (local development):
 JB_DRF_AUTH_SMS_PROVIDER = "jb_drf_auth.providers.console_sms.ConsoleSmsProvider"
 ```
 
+Debug email provider (local development):
+
+```python
+JB_DRF_AUTH_EMAIL_PROVIDER = "jb_drf_auth.providers.console_email.ConsoleEmailProvider"
+```
+
 Twilio SMS provider:
 
 ```python

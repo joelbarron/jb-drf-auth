@@ -296,6 +296,42 @@
           "response": []
         },
         {
+          "name": "Social precheck",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"provider\": \"google\",\n  \"idToken\": \"<oidc_id_token>\",\n  \"client\": \"web\",\n  \"termsAndConditionsAccepted\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}{{basePath}}/login/social/precheck/",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "{{basePath}}",
+                "login",
+                "social",
+                "precheck",
+                ""
+              ]
+            },
+            "description": "Validate social identity without creating user, linking account, or issuing JWTs."
+          },
+          "response": []
+        },
+        {
           "name": "Social login (OIDC authorization code)",
           "request": {
             "method": "POST",

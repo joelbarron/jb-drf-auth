@@ -13,7 +13,12 @@ from jb_drf_auth.views.password_reset import (
 )
 from jb_drf_auth.views.profile import ProfilePictureUpdateView, ProfileViewSet
 from jb_drf_auth.views.register import RegisterView
-from jb_drf_auth.views.social_auth import SocialLinkView, SocialLoginView, SocialUnlinkView
+from jb_drf_auth.views.social_auth import (
+    SocialLinkView,
+    SocialLoginView,
+    SocialPrecheckView,
+    SocialUnlinkView,
+)
 from jb_drf_auth.views.user_admin import CreateStaffUserView, CreateSuperUserView
 
 __all__ = [
@@ -33,6 +38,7 @@ __all__ = [
     "ProfilePictureUpdateView",
     "RegisterView",
     "SocialLoginView",
+    "SocialPrecheckView",
     "SocialLinkView",
     "SocialUnlinkView",
     "CreateStaffUserView",

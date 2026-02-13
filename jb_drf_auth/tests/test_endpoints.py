@@ -26,7 +26,12 @@ from jb_drf_auth.views.password_reset import (
 )
 from jb_drf_auth.views.profile import ProfilePictureUpdateView, ProfileViewSet
 from jb_drf_auth.views.register import RegisterView
-from jb_drf_auth.views.social_auth import SocialLinkView, SocialLoginView, SocialUnlinkView
+from jb_drf_auth.views.social_auth import (
+    SocialLinkView,
+    SocialLoginView,
+    SocialPrecheckView,
+    SocialUnlinkView,
+)
 from jb_drf_auth.views.user_admin import CreateStaffUserView, CreateSuperUserView
 
 
@@ -251,6 +256,51 @@ class EndpointTests(unittest.TestCase):
             format="json",
         )
         response = SocialLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data.get("code"), "social_invalid_token")
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.precheck")
+    def test_social_precheck_view_success(self, precheck):
+        precheck.return_value = {
+            "provider": "google",
+            "email": "user@example.com",
+            "email_verified": True,
+            "social_account_exists": False,
+            "linked_existing_user": True,
+            "user_exists": True,
+            "would_create_user": False,
+            "can_login": True,
+        }
+        request = self.factory.post(
+            "/auth/login/social/precheck/",
+            {
+                "provider": "google",
+                "id_token": "token",
+                "client": "web",
+            },
+            format="json",
+        )
+        response = SocialPrecheckView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("linked_existing_user"), True)
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.precheck")
+    def test_social_precheck_view_handles_social_auth_error(self, precheck):
+        precheck.side_effect = SocialAuthError(
+            "Social token is invalid or expired.",
+            status_code=401,
+            code="social_invalid_token",
+        )
+        request = self.factory.post(
+            "/auth/login/social/precheck/",
+            {
+                "provider": "google",
+                "id_token": "token",
+                "client": "web",
+            },
+            format="json",
+        )
+        response = SocialPrecheckView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(response.data.get("code"), "social_invalid_token")
 

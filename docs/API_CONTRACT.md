@@ -189,6 +189,44 @@ Common errors:
 - `401`: invalid/expired social token.
 - `429`: throttled.
 
+### POST `/auth/login/social/precheck/`
+
+Validate social identity and determine whether user already exists, without creating user,
+linking accounts, or returning JWTs.
+
+Request:
+
+Uses the same payload as `/auth/login/social/` (provider/client and token payload according to provider).
+
+Success `200`:
+
+```json
+{
+  "provider": "google",
+  "email": "user@example.com",
+  "email_verified": true,
+  "social_account_exists": false,
+  "linked_existing_user": true,
+  "user_exists": true,
+  "would_create_user": false,
+  "can_login": true
+}
+```
+
+Field semantics:
+
+- `social_account_exists`: social account is already linked by `provider + provider_user_id`.
+- `linked_existing_user`: no social link exists, but user exists by email (when `LINK_BY_EMAIL=true`).
+- `user_exists`: `social_account_exists || linked_existing_user`.
+- `would_create_user`: no user exists and `AUTO_CREATE_USER=true`.
+- `can_login`: login can proceed with current settings (`existing user/link` or `AUTO_CREATE_USER=true`).
+
+Common errors:
+
+- `400`: unsupported provider, invalid payload, provider token rejected.
+- `401`: provider token invalid/expired.
+- `429`: throttled.
+
 ### POST `/auth/login/social/link/`
 
 Requires auth.

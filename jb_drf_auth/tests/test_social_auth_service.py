@@ -17,6 +17,100 @@ class SocialAuthServiceTests(unittest.TestCase):
     @patch("jb_drf_auth.services.social_auth.get_social_settings")
     @patch("jb_drf_auth.services.social_auth.get_social_account_model_cls")
     @patch("jb_drf_auth.services.social_auth.get_social_provider")
+    def test_precheck_detects_existing_social_account(
+        self,
+        get_social_provider,
+        get_social_account_model_cls,
+        get_social_settings,
+    ):
+        get_social_settings.return_value = {"LINK_BY_EMAIL": True, "AUTO_CREATE_USER": True}
+        get_social_provider.return_value.authenticate.return_value = SocialIdentity(
+            provider="google",
+            provider_user_id="sub-1",
+            email="user@example.com",
+            email_verified=True,
+        )
+
+        existing_account = SimpleNamespace(user=SimpleNamespace(id=10))
+        qs = MagicMock()
+        qs.select_related.return_value.first.return_value = existing_account
+        model_cls = MagicMock()
+        model_cls.objects.filter.return_value = qs
+        get_social_account_model_cls.return_value = model_cls
+
+        result = SocialAuthService.precheck("google", {"id_token": "token"})
+        self.assertEqual(result["social_account_exists"], True)
+        self.assertEqual(result["user_exists"], True)
+        self.assertEqual(result["would_create_user"], False)
+
+    @patch("jb_drf_auth.services.social_auth.User")
+    @patch("jb_drf_auth.services.social_auth.get_social_settings")
+    @patch("jb_drf_auth.services.social_auth.get_social_account_model_cls")
+    @patch("jb_drf_auth.services.social_auth.get_social_provider")
+    def test_precheck_detects_existing_user_by_email_when_not_linked(
+        self,
+        get_social_provider,
+        get_social_account_model_cls,
+        get_social_settings,
+        user_model,
+    ):
+        get_social_settings.return_value = {"LINK_BY_EMAIL": True, "AUTO_CREATE_USER": True}
+        get_social_provider.return_value.authenticate.return_value = SocialIdentity(
+            provider="google",
+            provider_user_id="sub-2",
+            email="user@example.com",
+            email_verified=True,
+        )
+
+        qs = MagicMock()
+        qs.select_related.return_value.first.return_value = None
+        model_cls = MagicMock()
+        model_cls.objects.filter.return_value = qs
+        get_social_account_model_cls.return_value = model_cls
+
+        user_model.objects.filter.return_value.first.return_value = SimpleNamespace(id=99)
+
+        result = SocialAuthService.precheck("google", {"id_token": "token"})
+        self.assertEqual(result["social_account_exists"], False)
+        self.assertEqual(result["linked_existing_user"], True)
+        self.assertEqual(result["user_exists"], True)
+        self.assertEqual(result["would_create_user"], False)
+
+    @patch("jb_drf_auth.services.social_auth.User")
+    @patch("jb_drf_auth.services.social_auth.get_social_settings")
+    @patch("jb_drf_auth.services.social_auth.get_social_account_model_cls")
+    @patch("jb_drf_auth.services.social_auth.get_social_provider")
+    def test_precheck_reports_would_create_user(
+        self,
+        get_social_provider,
+        get_social_account_model_cls,
+        get_social_settings,
+        user_model,
+    ):
+        get_social_settings.return_value = {"LINK_BY_EMAIL": True, "AUTO_CREATE_USER": True}
+        get_social_provider.return_value.authenticate.return_value = SocialIdentity(
+            provider="google",
+            provider_user_id="sub-3",
+            email="new-user@example.com",
+            email_verified=True,
+        )
+
+        qs = MagicMock()
+        qs.select_related.return_value.first.return_value = None
+        model_cls = MagicMock()
+        model_cls.objects.filter.return_value = qs
+        get_social_account_model_cls.return_value = model_cls
+
+        user_model.objects.filter.return_value.first.return_value = None
+
+        result = SocialAuthService.precheck("google", {"id_token": "token"})
+        self.assertEqual(result["user_exists"], False)
+        self.assertEqual(result["would_create_user"], True)
+        self.assertEqual(result["can_login"], True)
+
+    @patch("jb_drf_auth.services.social_auth.get_social_settings")
+    @patch("jb_drf_auth.services.social_auth.get_social_account_model_cls")
+    @patch("jb_drf_auth.services.social_auth.get_social_provider")
     def test_login_or_register_raises_when_auto_create_disabled(
         self,
         get_social_provider,
