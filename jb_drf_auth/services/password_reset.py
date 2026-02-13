@@ -18,7 +18,7 @@ logger = logging.getLogger("jb_drf_auth.services.password_reset")
 
 class PasswordResetService:
     @staticmethod
-    def send_reset_email(email: str, raise_on_fail: bool = True) -> bool | None:
+    def send_reset_email(email: str, raise_on_fail: bool = True) -> bool:
         provider_path = get_setting("EMAIL_PROVIDER")
 
         try:
@@ -44,7 +44,7 @@ class PasswordResetService:
                 error_message="user_not_found",
                 template_name="password_reset",
             )
-            return None
+            return False
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)

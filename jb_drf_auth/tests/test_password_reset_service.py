@@ -72,7 +72,7 @@ class PasswordResetServiceTests(unittest.TestCase):
 
         sent = PasswordResetService.send_reset_email("missing@example.com", raise_on_fail=False)
 
-        self.assertIsNone(sent)
+        self.assertEqual(sent, False)
         email_log_model.objects.create.assert_called_once()
         kwargs = email_log_model.objects.create.call_args.kwargs
         self.assertEqual(kwargs["to_email"], "missing@example.com")

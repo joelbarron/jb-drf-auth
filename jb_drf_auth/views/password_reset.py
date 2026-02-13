@@ -24,7 +24,7 @@ class PasswordResetRequestView(APIView):
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         email_sent = serializer.save()
-        if email_sent is False:
+        if email_sent is not True:
             return Response(
                 {
                     "detail": _("Solicitud recibida, pero el correo no fue enviado."),
