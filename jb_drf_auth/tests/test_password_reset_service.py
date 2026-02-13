@@ -25,7 +25,14 @@ class PasswordResetServiceTests(unittest.TestCase):
         get_email_provider,
         get_setting,
     ):
-        user_cls.objects.get.return_value = SimpleNamespace(pk=1, email="user@example.com")
+        user = SimpleNamespace(
+            pk=1,
+            email="user@example.com",
+            password="pbkdf2_sha256$260000$mock$hash",
+            last_login=None,
+        )
+        user.get_email_field_name = lambda: "email"
+        user_cls.objects.get.return_value = user
         render_email_template.return_value = ("Reset", "text body", "<p>html body</p>")
         get_setting.side_effect = lambda key: {
             "EMAIL_PROVIDER": "jb_drf_auth.providers.console_email.ConsoleEmailProvider",
@@ -53,7 +60,9 @@ class PasswordResetServiceTests(unittest.TestCase):
         get_email_log_model_cls,
         get_setting,
     ):
-        user_cls.objects.get.side_effect = user_cls.DoesNotExist
+        does_not_exist = type("DoesNotExist", (Exception,), {})
+        user_cls.DoesNotExist = does_not_exist
+        user_cls.objects.get.side_effect = does_not_exist
         get_setting.side_effect = lambda key: {
             "EMAIL_PROVIDER": "jb_drf_auth.providers.console_email.ConsoleEmailProvider",
         }.get(key)
