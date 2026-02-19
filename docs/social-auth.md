@@ -237,7 +237,7 @@ Alternative for Google/Apple web:
 3. Google/Apple: `id_token`.
 4. Facebook: `access_token`.
 5. Read push token (FCM/APNs).
-6. Send token + `client=mobile` + `device.notification_token`.
+6. Send token + `client=mobile` + `device` payload. Include `device.notification_token` when available.
 7. Persist backend JWT tokens.
 
 ## Link and unlink flows
@@ -250,7 +250,8 @@ For already-authenticated users:
 ## What frontend must enforce
 
 - Always send `client` (`web` or `mobile`).
-- For `mobile`, always send `device.notification_token`.
+- For `mobile`, send `device.notification_token` when available.
+- If you want to enforce it server-side, set `MOBILE_NOTIFICATION_TOKEN_REQUIRED=True`.
 - If your product requires T&C, send `terms_and_conditions_accepted=true` on first social signup.
 - Handle `400/401` from backend and retry full provider login (do not loop on stale tokens).
 

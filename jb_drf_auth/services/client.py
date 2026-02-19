@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.utils.translation import gettext as _
 
+from jb_drf_auth.conf import get_setting
 from jb_drf_auth.services.me import MeService
 from jb_drf_auth.utils import get_device_model_cls
 
@@ -22,7 +23,8 @@ class ClientService:
                 )
 
             notification_token = device_data.get("notification_token")
-            if not notification_token:
+            require_notification_token = bool(get_setting("MOBILE_NOTIFICATION_TOKEN_REQUIRED"))
+            if require_notification_token and not notification_token:
                 raise serializers.ValidationError(
                     {"device": _("notification_token es requerido para cliente movil.")}
                 )

@@ -7,6 +7,7 @@ DEFAULTS = {
     "AUTHENTICATION_TYPE": "email",  # "email", "username", "both"
     "CLIENT_CHOICES": ("web", "mobile"),
     "AUTH_SINGLE_SESSION_ON_MOBILE": False,
+    "MOBILE_NOTIFICATION_TOKEN_REQUIRED": False,
     "FRONTEND_URL": None,
     "DEFAULT_FROM_EMAIL": None,
     "TERMS_AND_CONDITIONS_REQUIRED": True,

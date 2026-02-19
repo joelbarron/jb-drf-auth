@@ -112,7 +112,8 @@ Success `200`:
 
 Common errors:
 
-- `400`: missing/invalid `device` when `client = "mobile"` or missing `device.notification_token`.
+- `400`: missing/invalid `device` when `client = "mobile"`.
+- `400` for missing `device.notification_token` only when `MOBILE_NOTIFICATION_TOKEN_REQUIRED=True`.
 - `401`: invalid credentials, inactive/unverified/deleted account.
 - `429`: throttled.
 

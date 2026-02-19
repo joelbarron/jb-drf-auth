@@ -105,12 +105,14 @@ class EndpointTests(unittest.TestCase):
 
     @patch("jb_drf_auth.services.client.MeService.get_me_mobile")
     @patch("jb_drf_auth.services.client.get_device_model_cls")
+    @patch("jb_drf_auth.services.client.get_setting", return_value=True)
     @patch("jb_drf_auth.services.login.TokensService.get_tokens_for_user")
     @patch("jb_drf_auth.services.login.EmailOrUsernameModelBackend.authenticate")
-    def test_basic_login_mobile_requires_notification_token(
+    def test_basic_login_mobile_requires_notification_token_when_enabled(
         self,
         authenticate,
         get_tokens_for_user,
+        _get_setting,
         get_device_model_cls,
         get_me_mobile,
     ):
@@ -134,6 +136,52 @@ class EndpointTests(unittest.TestCase):
         response = BasicLoginView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("device", response.data)
+
+    @patch("jb_drf_auth.services.client.MeService.get_me_mobile")
+    @patch("jb_drf_auth.services.client.get_device_model_cls")
+    @patch("jb_drf_auth.services.login.TokensService.get_tokens_for_user")
+    @patch("jb_drf_auth.services.login.EmailOrUsernameModelBackend.authenticate")
+    def test_basic_login_mobile_allows_missing_notification_token_by_default(
+        self,
+        authenticate,
+        get_tokens_for_user,
+        get_device_model_cls,
+        get_me_mobile,
+    ):
+        user = DummyUser()
+        user.get_default_profile = MagicMock(return_value=MagicMock())
+        authenticate.return_value = user
+        get_tokens_for_user.return_value = {"access": "x", "refresh": "y"}
+        device_model = MagicMock()
+        get_device_model_cls.return_value = device_model
+        get_me_mobile.return_value = {"ok": True}
+
+        request = self.factory.post(
+            "/auth/login/basic/",
+            {
+                "login": "u",
+                "password": "p",
+                "client": "mobile",
+                "device": {
+                    "platform": "ios",
+                    "name": "iPhone",
+                    "token": "t",
+                },
+            },
+            format="json",
+        )
+        response = BasicLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("device_registered"), True)
+        device_model.objects.update_or_create.assert_called_once_with(
+            user=user,
+            token="t",
+            defaults={
+                "platform": "ios",
+                "name": "iPhone",
+                "notification_token": None,
+            },
+        )
 
     @patch("jb_drf_auth.services.client.MeService.get_me_mobile")
     @patch("jb_drf_auth.services.client.get_device_model_cls")

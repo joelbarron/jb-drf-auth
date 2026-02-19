@@ -71,6 +71,9 @@ JB_DRF_AUTH = {
     "AUTH_SINGLE_SESSION_ON_MOBILE": env.bool(
         "AUTH_SINGLE_SESSION_ON_MOBILE", default=False
     ),
+    "MOBILE_NOTIFICATION_TOKEN_REQUIRED": env.bool(
+        "MOBILE_NOTIFICATION_TOKEN_REQUIRED", default=False
+    ),
     "ADMIN_BOOTSTRAP_TOKEN": env("ADMIN_BOOTSTRAP_TOKEN", default="super-secret-token"),
     "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
     "PERSON_ID_DOCUMENTS_UPLOAD_TO": "uploads/people/id-documents",
@@ -92,6 +95,7 @@ Optional:
 ```python
 JB_DRF_AUTH_AUTHENTICATION_TYPE = "email"  # "email", "username", "both"
 JB_DRF_AUTH_AUTH_SINGLE_SESSION_ON_MOBILE = False
+JB_DRF_AUTH_MOBILE_NOTIFICATION_TOKEN_REQUIRED = False
 JB_DRF_AUTH_ADMIN_BOOTSTRAP_TOKEN = "super-secret"
 JB_DRF_AUTH_PROFILE_PICTURE_UPLOAD_TO = "uploads/users/profile-pictures"
 JB_DRF_AUTH_PERSON_PICTURE_UPLOAD_TO = "uploads/users/profile-pictures"
@@ -173,6 +177,7 @@ JB_DRF_AUTH = {
     "AUTHENTICATION_TYPE": "email",  # "email", "username", "both"
     "CLIENT_CHOICES": ("web", "mobile"),
     "AUTH_SINGLE_SESSION_ON_MOBILE": False,
+    "MOBILE_NOTIFICATION_TOKEN_REQUIRED": False,
     "ADMIN_BOOTSTRAP_TOKEN": "super-secret",
     "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
     "PROFILE_PICTURE_OPTIMIZE": True,

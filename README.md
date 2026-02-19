@@ -54,6 +54,9 @@ JB_DRF_AUTH = {
     "AUTH_SINGLE_SESSION_ON_MOBILE": env.bool(
         "AUTH_SINGLE_SESSION_ON_MOBILE", default=False
     ),
+    "MOBILE_NOTIFICATION_TOKEN_REQUIRED": env.bool(
+        "MOBILE_NOTIFICATION_TOKEN_REQUIRED", default=False
+    ),
     "ADMIN_BOOTSTRAP_TOKEN": env("ADMIN_BOOTSTRAP_TOKEN", default="super-secret-token"),
     "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
     "PERSON_ID_DOCUMENTS_UPLOAD_TO": "uploads/people/id-documents",
