@@ -46,6 +46,7 @@ class DummyUser:
         self.is_active = kwargs.get("is_active", True)
         self.is_authenticated = kwargs.get("is_authenticated", True)
         self.is_verified = kwargs.get("is_verified", True)
+        self.last_login = kwargs.get("last_login", None)
         self.deleted = kwargs.get("deleted", None)
         self.deleted_called = False
         self.saved_update_fields = []
