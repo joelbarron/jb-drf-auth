@@ -193,9 +193,15 @@ class OtpService:
                 is_default=True,
             )
 
+        update_fields = []
         if not getattr(user, "is_verified", True):
             user.is_verified = True
-            user.save(update_fields=["is_verified"])
+            update_fields.append("is_verified")
+        if hasattr(user, "last_login"):
+            user.last_login = now
+            update_fields.append("last_login")
+        if update_fields:
+            user.save(update_fields=update_fields)
 
         profile = user.get_default_profile()
         tokens = TokensService.get_tokens_for_user(user, profile)

@@ -65,7 +65,7 @@ JB_DRF_AUTH = {
     "EMAIL_LOG_MODEL": "authentication.EmailLog",
     # Required if you enable social login:
     # "SOCIAL_ACCOUNT_MODEL": "authentication.SocialAccount",
-    "FRONTEND_URL": env("FRONTEND_URL", default="http://localhost:3000"),
+    "FRONTEND_URL": env("JB_DRF_AUTH_FRONTEND_URL", default="http://localhost:3000"),
     "DEFAULT_FROM_EMAIL": "no-reply@your-domain.com",
     "AUTHENTICATION_TYPE": "both",  # "email", "username", "both"
     "AUTH_SINGLE_SESSION_ON_MOBILE": env.bool(
@@ -74,7 +74,7 @@ JB_DRF_AUTH = {
     "MOBILE_NOTIFICATION_TOKEN_REQUIRED": env.bool(
         "MOBILE_NOTIFICATION_TOKEN_REQUIRED", default=False
     ),
-    "ADMIN_BOOTSTRAP_TOKEN": env("ADMIN_BOOTSTRAP_TOKEN", default="super-secret-token"),
+    "ADMIN_BOOTSTRAP_TOKEN": env("JB_DRF_AUTH_ADMIN_BOOTSTRAP_TOKEN", default="super-secret-token"),
     "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
     "PERSON_ID_DOCUMENTS_UPLOAD_TO": "uploads/people/id-documents",
     "PROFILE_ROLE_CHOICES": (
@@ -89,6 +89,36 @@ JB_DRF_AUTH = {
 ```
 
 If you use `env(...)`/`env.bool(...)`, ensure `environ.Env()` is configured in your settings module.
+
+Example `.env` (recommended naming with `JB_DRF_AUTH_` prefix):
+
+```dotenv
+JB_DRF_AUTH_FRONTEND_URL=http://localhost:3000
+JB_DRF_AUTH_ADMIN_BOOTSTRAP_TOKEN=super-secret-token
+
+JB_DRF_AUTH_AUTH_SINGLE_SESSION_ON_MOBILE=False
+JB_DRF_AUTH_MOBILE_NOTIFICATION_TOKEN_REQUIRED=False
+
+JB_DRF_AUTH_TWILIO_ACCOUNT_SID=
+JB_DRF_AUTH_TWILIO_AUTH_TOKEN=
+JB_DRF_AUTH_TWILIO_FROM_NUMBER=
+JB_DRF_AUTH_TWILIO_MESSAGING_SERVICE_SID=
+
+JB_DRF_AUTH_AWS_REGION=us-east-2
+JB_DRF_AUTH_AWS_ACCESS_KEY_ID=
+JB_DRF_AUTH_AWS_SECRET_ACCESS_KEY=
+JB_DRF_AUTH_AWS_SESSION_TOKEN=
+JB_DRF_AUTH_AWS_SNS_ENDPOINT_URL=
+
+JB_DRF_AUTH_SOCIAL_DEBUG_ERRORS=False
+JB_DRF_AUTH_SOCIAL_GOOGLE_CLIENT_ID_WEB=
+JB_DRF_AUTH_SOCIAL_GOOGLE_CLIENT_ID_IOS=
+JB_DRF_AUTH_SOCIAL_GOOGLE_CLIENT_ID_ANDROID=
+JB_DRF_AUTH_SOCIAL_APPLE_CLIENT_ID=
+JB_DRF_AUTH_SOCIAL_APPLE_CLIENT_SECRET=
+JB_DRF_AUTH_SOCIAL_FACEBOOK_APP_ID=
+JB_DRF_AUTH_SOCIAL_FACEBOOK_APP_SECRET=
+```
 
 Optional:
 
@@ -153,11 +183,22 @@ Twilio SMS provider:
 
 ```python
 JB_DRF_AUTH_SMS_PROVIDER = "jb_drf_auth.providers.twilio_sms.TwilioSmsProvider"
-JB_DRF_AUTH_TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID")
-JB_DRF_AUTH_TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN")
+JB_DRF_AUTH_TWILIO_ACCOUNT_SID = env("JB_DRF_AUTH_TWILIO_ACCOUNT_SID")
+JB_DRF_AUTH_TWILIO_AUTH_TOKEN = env("JB_DRF_AUTH_TWILIO_AUTH_TOKEN")
 # Configure one of these:
-JB_DRF_AUTH_TWILIO_FROM_NUMBER = env("TWILIO_FROM_NUMBER", default=None)
-JB_DRF_AUTH_TWILIO_MESSAGING_SERVICE_SID = env("TWILIO_MESSAGING_SERVICE_SID", default=None)
+JB_DRF_AUTH_TWILIO_FROM_NUMBER = env("JB_DRF_AUTH_TWILIO_FROM_NUMBER", default=None)
+JB_DRF_AUTH_TWILIO_MESSAGING_SERVICE_SID = env("JB_DRF_AUTH_TWILIO_MESSAGING_SERVICE_SID", default=None)
+```
+
+AWS SNS provider (optional explicit credentials/region):
+
+```python
+JB_DRF_AUTH_SMS_PROVIDER = "jb_drf_auth.providers.aws_sns.AwsSnsSmsProvider"
+JB_DRF_AUTH_AWS_REGION = env("JB_DRF_AUTH_AWS_REGION", default=None)
+JB_DRF_AUTH_AWS_ACCESS_KEY_ID = env("JB_DRF_AUTH_AWS_ACCESS_KEY_ID", default=None)
+JB_DRF_AUTH_AWS_SECRET_ACCESS_KEY = env("JB_DRF_AUTH_AWS_SECRET_ACCESS_KEY", default=None)
+JB_DRF_AUTH_AWS_SESSION_TOKEN = env("JB_DRF_AUTH_AWS_SESSION_TOKEN", default=None)
+JB_DRF_AUTH_AWS_SNS_ENDPOINT_URL = env("JB_DRF_AUTH_AWS_SNS_ENDPOINT_URL", default=None)
 ```
 
 You can also configure everything using a single dict (copy/paste ready):

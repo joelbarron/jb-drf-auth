@@ -59,9 +59,9 @@ JB_DRF_AUTH = {
         "PROVIDERS": {
             "google": {
                 "CLASS": "jb_drf_auth.providers.google_oidc.GoogleOidcProvider",
-                "CLIENT_ID_WEB": env("GOOGLE_WEB_CLIENT_ID"),
-                "CLIENT_ID_IOS": env("GOOGLE_IOS_CLIENT_ID", default=None),
-                "CLIENT_ID_ANDROID": env("GOOGLE_ANDROID_CLIENT_ID", default=None),
+                "CLIENT_ID_WEB": env("JB_DRF_AUTH_SOCIAL_GOOGLE_CLIENT_ID_WEB"),
+                "CLIENT_ID_IOS": env("JB_DRF_AUTH_SOCIAL_GOOGLE_CLIENT_ID_IOS", default=None),
+                "CLIENT_ID_ANDROID": env("JB_DRF_AUTH_SOCIAL_GOOGLE_CLIENT_ID_ANDROID", default=None),
                 "ISSUER": "https://accounts.google.com",
                 "JWKS_URL": "https://www.googleapis.com/oauth2/v3/certs",
             },

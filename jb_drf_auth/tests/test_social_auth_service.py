@@ -14,6 +14,58 @@ from jb_drf_auth.services.social_auth import SocialAuthService
 
 
 class SocialAuthServiceTests(unittest.TestCase):
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService._sync_profile_picture")
+    @patch("jb_drf_auth.services.social_auth.ClientService.response_for_client")
+    @patch("jb_drf_auth.services.social_auth.TokensService.get_tokens_for_user")
+    @patch("jb_drf_auth.services.social_auth.get_social_settings")
+    @patch("jb_drf_auth.services.social_auth.get_social_account_model_cls")
+    @patch("jb_drf_auth.services.social_auth.get_social_provider")
+    def test_login_or_register_updates_user_last_login(
+        self,
+        get_social_provider,
+        get_social_account_model_cls,
+        get_social_settings,
+        get_tokens_for_user,
+        response_for_client,
+        _sync_profile_picture,
+    ):
+        get_social_settings.return_value = {"LINK_BY_EMAIL": True, "AUTO_CREATE_USER": True}
+        identity = SocialIdentity(
+            provider="google",
+            provider_user_id="sub-1",
+            email="user@example.com",
+            email_verified=True,
+            picture_url="https://example.com/p.png",
+        )
+        get_social_provider.return_value.authenticate.return_value = identity
+
+        user = MagicMock()
+        user.id = 55
+        profile = MagicMock()
+        user.get_default_profile.return_value = profile
+
+        existing_social = SimpleNamespace(user=user)
+        account_qs = MagicMock()
+        account_qs.select_related.return_value.first.return_value = existing_social
+
+        social_model = MagicMock()
+        social_model.objects.filter.return_value = account_qs
+        social_model.objects.update_or_create.return_value = (SimpleNamespace(pk=10), False)
+        get_social_account_model_cls.return_value = social_model
+
+        get_tokens_for_user.return_value = {"access": "a", "refresh": "b"}
+        response_for_client.return_value = {"ok": True}
+
+        result = SocialAuthService.login_or_register(
+            provider_name="google",
+            payload={"id_token": "token"},
+            client="web",
+            device_data=None,
+        )
+
+        self.assertEqual(result.get("ok"), True)
+        user.save.assert_any_call(update_fields=["last_login"])
+
     @patch("jb_drf_auth.services.social_auth.get_social_settings")
     @patch("jb_drf_auth.services.social_auth.get_social_account_model_cls")
     @patch("jb_drf_auth.services.social_auth.get_social_provider")

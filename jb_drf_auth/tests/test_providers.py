@@ -20,10 +20,16 @@ class AwsSnsProviderTests(unittest.TestCase):
         get_setting.side_effect = lambda name: {
             "SMS_TYPE": "Transactional",
             "SMS_SENDER_ID": "MyBrand",
+            "AWS_REGION": None,
+            "AWS_ACCESS_KEY_ID": None,
+            "AWS_SECRET_ACCESS_KEY": None,
+            "AWS_SESSION_TOKEN": None,
+            "AWS_SNS_ENDPOINT_URL": None,
         }.get(name)
         client = MagicMock()
         boto_client.return_value = client
         provider = AwsSnsSmsProvider()
+        boto_client.assert_called_once_with("sns")
 
         provider.send_sms("+15551112222", "hello")
         client.publish.assert_called_once()
@@ -38,14 +44,45 @@ class AwsSnsProviderTests(unittest.TestCase):
         get_setting.side_effect = lambda name: {
             "SMS_TYPE": "Transactional",
             "SMS_SENDER_ID": None,
+            "AWS_REGION": None,
+            "AWS_ACCESS_KEY_ID": None,
+            "AWS_SECRET_ACCESS_KEY": None,
+            "AWS_SESSION_TOKEN": None,
+            "AWS_SNS_ENDPOINT_URL": None,
         }.get(name)
         client = MagicMock()
         boto_client.return_value = client
         provider = AwsSnsSmsProvider()
+        boto_client.assert_called_once_with("sns")
 
         provider.send_sms("+15551112222", "hello")
         kwargs = client.publish.call_args.kwargs
         self.assertNotIn("AWS.SNS.SMS.SenderID", kwargs["MessageAttributes"])
+
+    @patch("jb_drf_auth.providers.aws_sns.get_setting")
+    @patch("jb_drf_auth.providers.aws_sns.boto3.client")
+    def test_send_sms_uses_aws_prefixed_settings_when_present(self, boto_client, get_setting):
+        get_setting.side_effect = lambda name: {
+            "SMS_TYPE": "Transactional",
+            "SMS_SENDER_ID": "MyBrand",
+            "AWS_REGION": "us-east-2",
+            "AWS_ACCESS_KEY_ID": "key",
+            "AWS_SECRET_ACCESS_KEY": "secret",
+            "AWS_SESSION_TOKEN": "session",
+            "AWS_SNS_ENDPOINT_URL": "http://localhost:4566",
+        }.get(name)
+        boto_client.return_value = MagicMock()
+
+        AwsSnsSmsProvider()
+
+        boto_client.assert_called_once_with(
+            "sns",
+            region_name="us-east-2",
+            aws_access_key_id="key",
+            aws_secret_access_key="secret",
+            aws_session_token="session",
+            endpoint_url="http://localhost:4566",
+        )
 
 
 class ConsoleSmsProviderTests(unittest.TestCase):

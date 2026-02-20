@@ -48,9 +48,13 @@ class DummyUser:
         self.is_verified = kwargs.get("is_verified", True)
         self.deleted = kwargs.get("deleted", None)
         self.deleted_called = False
+        self.saved_update_fields = []
 
     def delete(self):
         self.deleted_called = True
+
+    def save(self, *args, **kwargs):
+        self.saved_update_fields.append(kwargs.get("update_fields"))
 
 
 class EndpointTests(unittest.TestCase):
@@ -102,6 +106,7 @@ class EndpointTests(unittest.TestCase):
         args, _kwargs = response_for_client.call_args
         self.assertEqual(args[0], "web")
         self.assertIsNone(args[4])
+        self.assertIn(["last_login"], user.saved_update_fields)
 
     @patch("jb_drf_auth.services.client.MeService.get_me_mobile")
     @patch("jb_drf_auth.services.client.get_device_model_cls")
@@ -398,6 +403,7 @@ class EndpointTests(unittest.TestCase):
         request = self.factory.post("/auth/register/", {}, format="json")
         response = RegisterView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data.get("email_sent"), True)
 
     @patch("jb_drf_auth.views.register.RegisterView.get_serializer")
     def test_register_view_created_email_not_sent(self, get_serializer):

@@ -46,8 +46,8 @@ JB_DRF_AUTH = {
         "PROVIDERS": {
             "facebook": {
                 "CLASS": "jb_drf_auth.providers.facebook_oauth.FacebookOAuthProvider",
-                "APP_ID": env("FACEBOOK_APP_ID"),
-                "APP_SECRET": env("FACEBOOK_APP_SECRET"),
+                "APP_ID": env("JB_DRF_AUTH_SOCIAL_FACEBOOK_APP_ID"),
+                "APP_SECRET": env("JB_DRF_AUTH_SOCIAL_FACEBOOK_APP_SECRET"),
                 "GRAPH_API_VERSION": "v21.0",
                 "ASSUME_EMAIL_VERIFIED": True,
             },
@@ -77,6 +77,6 @@ Optional fields like `role` and `device` follow the same rules documented in `so
 If backend returns `social_token_exchange_failed` or `social_identity_invalid`, verify:
 
 1. App is in correct mode (development/live) and your test user has access.
-2. `FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET` match the same Meta app.
+2. `JB_DRF_AUTH_SOCIAL_FACEBOOK_APP_ID` and `JB_DRF_AUTH_SOCIAL_FACEBOOK_APP_SECRET` match the same Meta app.
 3. Frontend token belongs to that same app.
 4. Requested scopes include `email` when your flow expects email linking.

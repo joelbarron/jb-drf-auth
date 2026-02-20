@@ -28,7 +28,10 @@ class RegisterView(CreateAPIView):
                     status=status.HTTP_201_CREATED,
                 )
             return Response(
-                {"detail": _("Usuario creado. Revisa tu correo para verificar tu cuenta.")},
+                {
+                    "detail": _("Usuario creado. Revisa tu correo para verificar tu cuenta."),
+                    "email_sent": True,
+                },
                 status=status.HTTP_201_CREATED,
             )
         except ValueError as exc:

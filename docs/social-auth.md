@@ -1,6 +1,7 @@
 # Social Authentication Guide
 
 This document explains how to integrate social login with `jb-drf-auth` and what frontend apps should implement.
+Recommended env naming convention: `JB_DRF_AUTH_*` for all library-related variables.
 
 For Google Cloud Console setup (OAuth consent screen, origins, redirect URIs), see:
 
@@ -52,7 +53,7 @@ JB_DRF_AUTH = {
     "SOCIAL_ACCOUNT_MODEL": "authentication.SocialAccount",
     # Social auth behavior
     "SOCIAL": {
-        "DEBUG_ERRORS": env.bool("SOCIAL_ACCOUNT_DEBUG_ERRORS", default=False),  # True only for local debugging
+        "DEBUG_ERRORS": env.bool("JB_DRF_AUTH_SOCIAL_DEBUG_ERRORS", default=False),  # True only for local debugging
         "AUTO_CREATE_USER": True,
         "LINK_BY_EMAIL": True,
         "REQUIRE_VERIFIED_EMAIL": True,
@@ -63,16 +64,16 @@ JB_DRF_AUTH = {
         "PROVIDERS": {
             "google": {
                 "CLASS": "jb_drf_auth.providers.google_oidc.GoogleOidcProvider",
-                "CLIENT_ID_WEB": env("GOOGLE_WEB_CLIENT_ID"),
-                "CLIENT_ID_IOS": env("GOOGLE_IOS_CLIENT_ID", default=None),
-                "CLIENT_ID_ANDROID": env("GOOGLE_ANDROID_CLIENT_ID", default=None),
+                "CLIENT_ID_WEB": env("JB_DRF_AUTH_SOCIAL_GOOGLE_CLIENT_ID_WEB"),
+                "CLIENT_ID_IOS": env("JB_DRF_AUTH_SOCIAL_GOOGLE_CLIENT_ID_IOS", default=None),
+                "CLIENT_ID_ANDROID": env("JB_DRF_AUTH_SOCIAL_GOOGLE_CLIENT_ID_ANDROID", default=None),
                 "ISSUER": "https://accounts.google.com",
                 "JWKS_URL": "https://www.googleapis.com/oauth2/v3/certs",
             },
             "apple": {
                 "CLASS": "jb_drf_auth.providers.apple_oidc.AppleOidcProvider",
-                "CLIENT_ID": env("APPLE_SERVICES_ID_OR_BUNDLE_ID"),
-                "CLIENT_SECRET": env("APPLE_CLIENT_SECRET", default=None),
+                "CLIENT_ID": env("JB_DRF_AUTH_SOCIAL_APPLE_CLIENT_ID"),
+                "CLIENT_SECRET": env("JB_DRF_AUTH_SOCIAL_APPLE_CLIENT_SECRET", default=None),
                 "ISSUER": "https://appleid.apple.com",
                 "JWKS_URL": "https://appleid.apple.com/auth/keys",
             },

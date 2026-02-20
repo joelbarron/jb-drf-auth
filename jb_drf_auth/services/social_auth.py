@@ -183,6 +183,7 @@ class SocialAuthService:
         user = None
         user_created = False
         linked_existing = False
+        login_at = timezone.now()
 
         social_account = social_account_model.objects.filter(
             provider=identity.provider,
@@ -230,9 +231,12 @@ class SocialAuthService:
                 "email_verified": bool(identity.email_verified),
                 "picture_url": identity.picture_url,
                 "raw_response": identity.raw_response or {},
-                "last_login_at": timezone.now(),
+                "last_login_at": login_at,
             },
         )
+        if hasattr(user, "last_login"):
+            user.last_login = login_at
+            user.save(update_fields=["last_login"])
 
         profile = user.get_default_profile()
         if profile is None:

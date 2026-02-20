@@ -108,6 +108,7 @@ class OtpServiceTests(unittest.TestCase):
         )
 
         self.assertEqual(result, {"ok": True})
+        created_user.save.assert_any_call(update_fields=["is_verified", "last_login"])
         user_cls.objects.create_user.assert_called_once_with(
             email="phone_525512345674@otp.local",
             phone="+525512345674",
