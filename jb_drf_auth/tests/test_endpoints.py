@@ -11,7 +11,12 @@ from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from jb_drf_auth.exceptions import SocialAuthError
-from jb_drf_auth.views.account_management import AccountUpdateView, delete_account
+from jb_drf_auth.views.account_management import (
+    AccountUpdateView,
+    EmailAvailabilityView,
+    UsernameAvailabilityView,
+    delete_account,
+)
 from jb_drf_auth.views.email_confirmation import (
     AccountConfirmEmailView,
     ResendConfirmationEmailView,
@@ -62,6 +67,69 @@ class EndpointTests(unittest.TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         self.user = DummyUser()
+
+    @patch("jb_drf_auth.views.account_management.get_user_model")
+    def test_username_availability_available(self, get_user_model):
+        mock_qs = MagicMock()
+        mock_qs.exists.return_value = False
+        get_user_model.return_value.objects.filter.return_value = mock_qs
+
+        request = self.factory.get("/auth/account/username-availability/?username=newuser")
+        response = UsernameAvailabilityView.as_view()(request)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["field"], "username")
+        self.assertEqual(response.data["value"], "newuser")
+        self.assertTrue(response.data["available"])
+
+    @patch("jb_drf_auth.views.account_management.get_user_model")
+    def test_username_availability_not_available(self, get_user_model):
+        mock_qs = MagicMock()
+        mock_qs.exists.return_value = True
+        get_user_model.return_value.objects.filter.return_value = mock_qs
+
+        request = self.factory.get("/auth/account/username-availability/?username=taken")
+        response = UsernameAvailabilityView.as_view()(request)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["available"])
+        self.assertIn("detail", response.data)
+
+    def test_username_availability_requires_query_param(self):
+        request = self.factory.get("/auth/account/username-availability/")
+        response = UsernameAvailabilityView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("username", response.data)
+
+    @patch("jb_drf_auth.views.account_management.get_user_model")
+    def test_email_availability_available(self, get_user_model):
+        mock_qs = MagicMock()
+        mock_qs.exists.return_value = False
+        get_user_model.return_value.objects.filter.return_value = mock_qs
+
+        request = self.factory.get("/auth/account/email-availability/?email=test@example.com")
+        response = EmailAvailabilityView.as_view()(request)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["field"], "email")
+        self.assertEqual(response.data["value"], "test@example.com")
+        self.assertTrue(response.data["available"])
+
+    @patch("jb_drf_auth.views.account_management.get_user_model")
+    def test_email_availability_excludes_current_authenticated_user(self, get_user_model):
+        mock_filtered = MagicMock()
+        mock_excluded = MagicMock()
+        mock_excluded.exists.return_value = False
+        mock_filtered.exclude.return_value = mock_excluded
+        get_user_model.return_value.objects.filter.return_value = mock_filtered
+
+        request = self.factory.get("/auth/account/email-availability/?email=user@example.com")
+        force_authenticate(request, user=self.user)
+        response = EmailAvailabilityView.as_view()(request)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["available"])
+        mock_filtered.exclude.assert_called_once_with(pk=self.user.pk)
 
     @patch("jb_drf_auth.services.login.LoginService.basic_login")
     def test_basic_login_view_success(self, basic_login):

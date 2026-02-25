@@ -1,11 +1,17 @@
+from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.utils.translation import gettext as _
 
-from jb_drf_auth.serializers import UserSerializer, UserUpdateSerializer
+from jb_drf_auth.serializers import (
+    EmailAvailabilitySerializer,
+    UserSerializer,
+    UserUpdateSerializer,
+    UsernameAvailabilitySerializer,
+)
 
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
@@ -35,3 +41,43 @@ class AccountUpdateView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(UserSerializer(request.user).data, status=status.HTTP_200_OK)
+
+
+class _BaseAvailabilityView(APIView):
+    permission_classes = [AllowAny]
+    serializer_class = None
+    field_name = None
+
+    def get(self, request):
+        serializer = self.serializer_class(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        value = serializer.validated_data[self.field_name]
+        user_model = get_user_model()
+        queryset = user_model.objects.filter(**{self.field_name: value})
+
+        current_user = getattr(request, "user", None)
+        if getattr(current_user, "is_authenticated", False) and getattr(current_user, "pk", None):
+            queryset = queryset.exclude(pk=current_user.pk)
+
+        available = not queryset.exists()
+        payload = {
+            "field": self.field_name,
+            "value": value,
+            "available": available,
+        }
+        if not available:
+            if self.field_name == "email":
+                payload["detail"] = _("Ya existe un usuario con este correo.")
+            elif self.field_name == "username":
+                payload["detail"] = _("El nombre de usuario ya esta en uso.")
+        return Response(payload, status=status.HTTP_200_OK)
+
+
+class UsernameAvailabilityView(_BaseAvailabilityView):
+    serializer_class = UsernameAvailabilitySerializer
+    field_name = "username"
+
+
+class EmailAvailabilityView(_BaseAvailabilityView):
+    serializer_class = EmailAvailabilitySerializer
+    field_name = "email"

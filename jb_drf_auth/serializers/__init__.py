@@ -1,3 +1,7 @@
+from jb_drf_auth.serializers.availability import (
+    EmailAvailabilitySerializer,
+    UsernameAvailabilitySerializer,
+)
 from jb_drf_auth.serializers.device import DevicePayloadSerializer, DeviceSerializer
 from jb_drf_auth.serializers.email_confirmation import (
     EmailConfirmationSerializer,
@@ -24,6 +28,7 @@ from jb_drf_auth.serializers.user_update import UserUpdateSerializer
 __all__ = [
     "DevicePayloadSerializer",
     "DeviceSerializer",
+    "EmailAvailabilitySerializer",
     "EmailConfirmationSerializer",
     "ResendConfirmationEmailSerializer",
     "BasicLoginSerializer",
@@ -42,4 +47,5 @@ __all__ = [
     "UserSerializer",
     "UserUpdateSerializer",
     "UserAdminCreateSerializer",
+    "UsernameAvailabilitySerializer",
 ]

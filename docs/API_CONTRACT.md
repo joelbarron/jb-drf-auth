@@ -652,6 +652,53 @@ Common errors:
 - `400`: validation/uniqueness errors.
 - `401`: unauthenticated.
 
+### GET `/auth/account/username-availability/?username=<value>`
+
+Public endpoint. Checks whether a username is available.
+
+Success `200`:
+
+```json
+{
+  "field": "username",
+  "value": "user1",
+  "available": false,
+  "detail": "El nombre de usuario ya esta en uso."
+}
+```
+
+Notes:
+
+- If authenticated and checking the current user's own username, it returns `available = true`.
+- `detail` is included only when the value is not available.
+
+Common errors:
+
+- `400`: missing/invalid `username`.
+
+### GET `/auth/account/email-availability/?email=<value>`
+
+Public endpoint. Checks whether an email is available.
+
+Success `200`:
+
+```json
+{
+  "field": "email",
+  "value": "user@example.com",
+  "available": true
+}
+```
+
+Notes:
+
+- If authenticated and checking the current user's own email, it returns `available = true`.
+- `detail` is included only when the value is not available.
+
+Common errors:
+
+- `400`: missing/invalid `email`.
+
 ### PUT `/auth/account/update/`
 
 Same as PATCH but full update semantics.

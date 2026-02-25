@@ -442,6 +442,11 @@ Update authenticated user account fields with:
 
 `PATCH /auth/account/update/`
 
+Check availability before updating registration/account data:
+
+- `GET /auth/account/username-availability/?username=<value>`
+- `GET /auth/account/email-availability/?email=<value>`
+
 Complete onboarding using the existing profile endpoint:
 
 `PATCH /auth/profiles/{id}/`
