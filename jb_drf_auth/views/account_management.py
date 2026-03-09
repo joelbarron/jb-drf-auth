@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import FieldError
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -54,13 +55,13 @@ class _BaseAvailabilityView(APIView):
         serializer.is_valid(raise_exception=True)
         value = serializer.validated_data[self.field_name]
         user_model = get_user_model()
-        model_field_names = {field.name for field in user_model._meta.get_fields()}
-        if self.field_name not in model_field_names:
+        try:
+            queryset = user_model.objects.filter(**{self.field_name: value})
+        except FieldError:
             return Response(
                 {"detail": _("Este tipo de disponibilidad no está soportado para este proyecto.")},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        queryset = user_model.objects.filter(**{self.field_name: value})
 
         current_user = getattr(request, "user", None)
         if getattr(current_user, "is_authenticated", False) and getattr(current_user, "pk", None):
