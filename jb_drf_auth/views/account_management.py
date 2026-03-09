@@ -8,6 +8,7 @@ from django.utils.translation import gettext as _
 
 from jb_drf_auth.serializers import (
     EmailAvailabilitySerializer,
+    PhoneAvailabilitySerializer,
     UserSerializer,
     UserUpdateSerializer,
     UsernameAvailabilitySerializer,
@@ -53,6 +54,12 @@ class _BaseAvailabilityView(APIView):
         serializer.is_valid(raise_exception=True)
         value = serializer.validated_data[self.field_name]
         user_model = get_user_model()
+        model_field_names = {field.name for field in user_model._meta.get_fields()}
+        if self.field_name not in model_field_names:
+            return Response(
+                {"detail": _("Este tipo de disponibilidad no está soportado para este proyecto.")},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         queryset = user_model.objects.filter(**{self.field_name: value})
 
         current_user = getattr(request, "user", None)
@@ -68,6 +75,8 @@ class _BaseAvailabilityView(APIView):
         if not available:
             if self.field_name == "email":
                 payload["detail"] = _("Ya existe un usuario con este correo.")
+            elif self.field_name == "phone":
+                payload["detail"] = _("Ya existe un usuario con este teléfono.")
             elif self.field_name == "username":
                 payload["detail"] = _("El nombre de usuario ya esta en uso.")
         return Response(payload, status=status.HTTP_200_OK)
@@ -81,3 +90,8 @@ class UsernameAvailabilityView(_BaseAvailabilityView):
 class EmailAvailabilityView(_BaseAvailabilityView):
     serializer_class = EmailAvailabilitySerializer
     field_name = "email"
+
+
+class PhoneAvailabilityView(_BaseAvailabilityView):
+    serializer_class = PhoneAvailabilitySerializer
+    field_name = "phone"

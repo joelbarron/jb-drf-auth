@@ -33,6 +33,31 @@ class MeService:
             return None
 
     @staticmethod
+    def _web_role_map_from_settings():
+        role_choices = get_setting("PROFILE_ROLE_CHOICES") or ()
+        role_map = {}
+
+        for choice in role_choices:
+            if not isinstance(choice, (tuple, list)) or not choice:
+                continue
+            raw_role = str(choice[0] or "").strip().upper()
+            if not raw_role:
+                continue
+            role_map[raw_role] = raw_role.lower()
+
+        return role_map
+
+    @staticmethod
+    def _web_role_from_profile(profile):
+        raw_role = str(getattr(profile, "role", "") or "").strip().upper()
+        role_map = MeService._web_role_map_from_settings()
+        if raw_role in role_map:
+            return [role_map[raw_role]]
+        if raw_role:
+            return [raw_role.lower()]
+        return ["patient"]
+
+    @staticmethod
     def get_me_mobile(user, profile, tokens):
         response = UserSerializer(user).data
         if tokens:
@@ -45,7 +70,7 @@ class MeService:
 
     @staticmethod
     def get_me_web(user, profile, tokens):
-        role = ["admin"]
+        role = MeService._web_role_from_profile(profile)
         status = "active"
 
         user_payload = {
@@ -88,7 +113,7 @@ class MeService:
         if client == "web":
             return MeService.get_me_web(
                 user=user,
-                profile=user.get_default_profile(),
+                profile=profile,
                 tokens=None,
             )
 

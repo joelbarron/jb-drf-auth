@@ -63,6 +63,11 @@ DEFAULTS = {
     "PHONE_DEFAULT_COUNTRY_CODE": None,
     "PHONE_MIN_LENGTH": 10,
     "PHONE_MAX_LENGTH": 15,
+    "CONTACT_VERIFICATION_PROOF_TTL_SECONDS": 1800,
+    "MAGIC_LINK_TTL_SECONDS": 900,
+    "MAGIC_LINK_FRONTEND_PATH": "/sign-in",
+    "MAGIC_LINK_QUERY_PARAM": "mlt",
+    "SMS_MAGIC_LINK_MESSAGE": "Tu acceso a Mentalysis es {url}. Expira en {minutes} minutos.",
     "THROTTLE_ENABLED": True,
     "THROTTLE_RATES": {
         "LOGIN_IP": "20/min",
@@ -123,6 +128,13 @@ ROOT_SETTING = "JB_DRF_AUTH"
 
 
 def get_setting(name: str):
+    if name in {"SMS_PROVIDER", "EMAIL_PROVIDER"}:
+        legacy_name = f"{PREFIX}{name}"
+        if hasattr(settings, legacy_name):
+            legacy_value = getattr(settings, legacy_name)
+            if legacy_value is not None:
+                return legacy_value
+
     root = getattr(settings, ROOT_SETTING, None)
     if isinstance(root, dict) and name in root:
         return root[name]

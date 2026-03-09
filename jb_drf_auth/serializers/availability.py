@@ -10,6 +10,10 @@ class EmailAvailabilitySerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
 
+class PhoneAvailabilitySerializer(serializers.Serializer):
+    phone = serializers.CharField(required=True, allow_blank=False, trim_whitespace=True)
+
+
 class AvailabilityResponseSerializer(serializers.Serializer):
     available = serializers.BooleanField()
     field = serializers.CharField()

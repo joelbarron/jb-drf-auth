@@ -1,14 +1,19 @@
 from jb_drf_auth.views.account_management import (
     AccountUpdateView,
     EmailAvailabilityView,
+    PhoneAvailabilityView,
     UsernameAvailabilityView,
     delete_account,
+)
+from jb_drf_auth.views.contact_verification import (
+    ContactVerificationRequestView,
+    ContactVerificationVerifyView,
 )
 from jb_drf_auth.views.email_confirmation import (
     AccountConfirmEmailView,
     ResendConfirmationEmailView,
 )
-from jb_drf_auth.views.login import BasicLoginView, SwitchProfileView
+from jb_drf_auth.views.login import BasicLoginView, MagicLinkConsumeView, SwitchProfileView
 from jb_drf_auth.views.me import MeView
 from jb_drf_auth.views.otp import RequestOtpCodeView, VerifyOtpCodeView
 from jb_drf_auth.views.password_reset import (
@@ -30,9 +35,13 @@ __all__ = [
     "delete_account",
     "AccountUpdateView",
     "EmailAvailabilityView",
+    "PhoneAvailabilityView",
+    "ContactVerificationRequestView",
+    "ContactVerificationVerifyView",
     "AccountConfirmEmailView",
     "ResendConfirmationEmailView",
     "BasicLoginView",
+    "MagicLinkConsumeView",
     "SwitchProfileView",
     "MeView",
     "RequestOtpCodeView",

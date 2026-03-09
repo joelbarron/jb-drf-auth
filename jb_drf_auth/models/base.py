@@ -258,7 +258,10 @@ class AbstractJbProfile(AbstractSafeDeleteModel, AbstractTimeStampedModel, Abstr
             )
 
         if self.is_default:
-            self.__class__.objects.filter(user=self.user, is_default=True).update(is_default=False)
+            defaults_qs = self.__class__.objects.filter(user=self.user, is_default=True)
+            if self.pk:
+                defaults_qs = defaults_qs.exclude(pk=self.pk)
+            defaults_qs.update(is_default=False)
         super().save(*args, **kwargs)
 
         new_picture_name = self.picture.name if self.picture else None
