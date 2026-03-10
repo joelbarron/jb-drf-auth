@@ -14,6 +14,7 @@ DEFAULTS = {
     "EMAIL_PROVIDER": "jb_drf_auth.providers.django_email.DjangoEmailProvider",
     "EMAIL_LOG_MODEL": None,  # required for email flows: "authentication.EmailLog"
     "EMAIL_TEMPLATES": None,
+    "MAILING": None,
     "ADMIN_BOOTSTRAP_TOKEN": None,
     "OTP_LENGTH": 6,
     "OTP_TTL_SECONDS": 300,

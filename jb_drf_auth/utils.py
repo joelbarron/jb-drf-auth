@@ -1,10 +1,15 @@
 import re
+from copy import deepcopy
+from typing import Any
 
+from django.conf import settings
 from django.apps import apps
 from django.contrib.auth import get_user_model
+from django.template.loader import render_to_string
 from django.utils.module_loading import import_string
 
-from .conf import get_setting, get_social_settings
+from .conf import ROOT_SETTING, get_setting, get_social_settings
+from .email_templates import DEFAULT_EMAIL_TEMPLATES, DEFAULT_MAILING
 
 def get_user_model_cls():
     return get_user_model()
@@ -171,35 +176,80 @@ def get_sms_message(code: str, minutes: int) -> str:
     return message
 
 
+def _deep_merge_dict(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    merged = deepcopy(base)
+    for key, value in (override or {}).items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _deep_merge_dict(merged[key], value)
+        else:
+            merged[key] = deepcopy(value)
+    return merged
+
+
+def get_mailing_settings() -> dict[str, Any]:
+    merged = deepcopy(DEFAULT_MAILING)
+
+    root = getattr(settings, ROOT_SETTING, None)
+    if isinstance(root, dict):
+        root_mailing = root.get("MAILING")
+        if isinstance(root_mailing, dict):
+            merged = _deep_merge_dict(merged, root_mailing)
+
+    project_mailing = getattr(settings, "MAILING", None)
+    if isinstance(project_mailing, dict):
+        merged = _deep_merge_dict(merged, project_mailing)
+
+    return merged
+
+
 def get_email_template(name: str):
-    from jb_drf_auth.email_templates import DEFAULT_EMAIL_TEMPLATES
+    mailing = get_mailing_settings()
+    mailing_templates = mailing.get("templates")
+    if isinstance(mailing_templates, dict) and name in mailing_templates:
+        return mailing_templates[name]
 
     templates = get_setting("EMAIL_TEMPLATES")
     if isinstance(templates, dict) and name in templates:
         return templates[name]
+
     return DEFAULT_EMAIL_TEMPLATES.get(name, {})
 
 
+def _render_template_value(value: Any, context: dict[str, Any]):
+    if callable(value):
+        return value(context)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return value
+    try:
+        return value.format(**context)
+    except Exception:
+        return value
+
+
 def render_email_template(name: str, context: dict):
+    mailing = get_mailing_settings()
     template = get_email_template(name)
-    subject = template.get("subject", "")
-    text_body = template.get("text", "")
-    html_body = template.get("html")
+    render_context = dict(context or {})
+    render_context.setdefault("mailing", mailing)
 
-    if callable(subject):
-        subject = subject(context)
+    subject = _render_template_value(template.get("subject", ""), render_context) or ""
+
+    text_template = template.get("text_template")
+    if text_template:
+        text_body = render_to_string(str(text_template), render_context)
     else:
-        subject = subject.format(**context)
+        text_body = _render_template_value(template.get("text", ""), render_context) or ""
 
-    if callable(text_body):
-        text_body = text_body(context)
+    html_template = template.get("html_template")
+    if html_template:
+        html_body = render_to_string(str(html_template), render_context)
     else:
-        text_body = text_body.format(**context)
+        html_body = _render_template_value(template.get("html"), render_context)
 
-    if html_body is not None:
-        if callable(html_body):
-            html_body = html_body(context)
-        else:
-            html_body = html_body.format(**context)
+    text_body = str(text_body or "").strip()
+    if not text_body:
+        text_body = str(subject or "").strip()
 
     return subject, text_body, html_body

@@ -1,62 +1,38 @@
 DEFAULT_EMAIL_TEMPLATES = {
     "email_confirmation": {
         "subject": "Verifica tu correo",
-        "text": (
-            "Hola {user_email},\n\n"
-            "Verifica tu correo usando este enlace:\n"
-            "{verify_url}\n\n"
-            "Si no solicitaste esta acción, ignora este mensaje."
-        ),
-        "html": (
-            "<!doctype html>"
-            "<html>"
-            "<body style=\"margin:0;padding:0;background:#f7f7f7;font-family:Arial,sans-serif;\">"
-            "<div style=\"max-width:560px;margin:24px auto;background:#ffffff;border-radius:12px;"
-            "padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.08);\">"
-            "<h2 style=\"margin:0 0 12px 0;color:#111;\">Verifica tu correo</h2>"
-            "<p style=\"margin:0 0 16px 0;color:#444;\">Hola {user_email},</p>"
-            "<p style=\"margin:0 0 20px 0;color:#444;\">"
-            "Confirma tu cuenta haciendo clic en el botón:"
-            "</p>"
-            "<a href=\"{verify_url}\" "
-            "style=\"display:inline-block;padding:12px 18px;background:#111;color:#fff;"
-            "text-decoration:none;border-radius:8px;\">Verificar correo</a>"
-            "<p style=\"margin:20px 0 0 0;color:#777;font-size:12px;\">"
-            "Si no solicitaste esta acción, ignora este mensaje."
-            "</p>"
-            "</div>"
-            "</body>"
-            "</html>"
-        ),
+        "text_template": "jb_drf_auth/mailing/email_confirmation.txt",
+        "html_template": "jb_drf_auth/mailing/email_confirmation.html",
     },
     "password_reset": {
         "subject": "Restablece tu contraseña",
-        "text": (
-            "Hola {user_email},\n\n"
-            "Restablece tu contraseña usando este enlace:\n"
-            "{reset_url}\n\n"
-            "Si no solicitaste este cambio, ignora este mensaje."
-        ),
-        "html": (
-            "<!doctype html>"
-            "<html>"
-            "<body style=\"margin:0;padding:0;background:#f7f7f7;font-family:Arial,sans-serif;\">"
-            "<div style=\"max-width:560px;margin:24px auto;background:#ffffff;border-radius:12px;"
-            "padding:24px;box-shadow:0 8px 24px rgba(0,0,0,.08);\">"
-            "<h2 style=\"margin:0 0 12px 0;color:#111;\">Restablece tu contraseña</h2>"
-            "<p style=\"margin:0 0 16px 0;color:#444;\">Hola {user_email},</p>"
-            "<p style=\"margin:0 0 20px 0;color:#444;\">"
-            "Haz clic en el botón para cambiar tu contraseña:"
-            "</p>"
-            "<a href=\"{reset_url}\" "
-            "style=\"display:inline-block;padding:12px 18px;background:#111;color:#fff;"
-            "text-decoration:none;border-radius:8px;\">Restablecer</a>"
-            "<p style=\"margin:20px 0 0 0;color:#777;font-size:12px;\">"
-            "Si no solicitaste este cambio, ignora este mensaje."
-            "</p>"
-            "</div>"
-            "</body>"
-            "</html>"
-        ),
+        "text_template": "jb_drf_auth/mailing/password_reset.txt",
+        "html_template": "jb_drf_auth/mailing/password_reset.html",
     },
+}
+
+DEFAULT_MAILING = {
+    "brand": {
+        "app_name": "Mentalysis",
+        "company_name": "MENTALYSIS SAPI DE CV",
+    },
+    "theme": {
+        "primary": "#0071CE",
+        "background": "#E7E7E7",
+        "surface": "#FFFFFF",
+        "text_primary": "#212B35",
+        "text_secondary": "#637381",
+        "divider": "#DFE3E8",
+        "link": "#0071CE",
+    },
+    "assets": {
+        "logo_url": "",
+        "logo_alt": "Logo",
+    },
+    "links": {
+        "logo_href": "",
+        "privacy_url": "",
+        "unsubscribe_url": "",
+    },
+    "templates": DEFAULT_EMAIL_TEMPLATES,
 }
