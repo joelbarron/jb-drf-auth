@@ -9,6 +9,16 @@ DEFAULT_EMAIL_TEMPLATES = {
         "text_template": "jb_drf_auth/mailing/password_reset.txt",
         "html_template": "jb_drf_auth/mailing/password_reset.html",
     },
+    "password_reset_success": {
+        "subject": "Contraseña actualizada correctamente",
+        "text_template": "jb_drf_auth/mailing/password_reset_success.txt",
+        "html_template": "jb_drf_auth/mailing/password_reset_success.html",
+    },
+    "account_created": {
+        "subject": "Bienvenido a Mentalysis",
+        "text_template": "jb_drf_auth/mailing/account_created.txt",
+        "html_template": "jb_drf_auth/mailing/account_created.html",
+    },
 }
 
 DEFAULT_MAILING = {

@@ -12,6 +12,7 @@ from rest_framework import status
 from jb_drf_auth.conf import get_setting, get_social_settings
 from jb_drf_auth.exceptions import SocialAuthError
 from jb_drf_auth.services.client import ClientService
+from jb_drf_auth.services.email_confirmation import EmailConfirmationService
 from jb_drf_auth.services.tokens import TokensService
 from jb_drf_auth.utils import (
     get_profile_model_cls,
@@ -260,6 +261,11 @@ class SocialAuthService:
         response["user_created"] = user_created
         response["linked_existing_user"] = linked_existing
         response["social_account_id"] = social_account.pk
+        response["account_created_email_sent"] = (
+            EmailConfirmationService.send_account_created_email(user=user, raise_on_fail=False)
+            if user_created
+            else False
+        )
         logger.info(
             "social_login_or_register_success provider=%s user_id=%s user_created=%s linked_existing_user=%s",
             identity.provider,

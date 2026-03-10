@@ -49,6 +49,7 @@ class OtpServiceTests(unittest.TestCase):
         self.assertEqual(result["channel"], "email")
 
     @patch("jb_drf_auth.services.otp.get_setting")
+    @patch("jb_drf_auth.services.otp.EmailConfirmationService.send_account_created_email")
     @patch("jb_drf_auth.services.otp.ClientService.response_for_client")
     @patch("jb_drf_auth.services.otp.TokensService.get_tokens_for_user")
     @patch("jb_drf_auth.services.otp.get_profile_model_cls")
@@ -61,6 +62,7 @@ class OtpServiceTests(unittest.TestCase):
         get_profile_model_cls,
         get_tokens_for_user,
         response_for_client,
+        send_account_created_email,
         get_setting,
     ):
         get_setting.side_effect = lambda key: {
@@ -98,6 +100,7 @@ class OtpServiceTests(unittest.TestCase):
 
         get_tokens_for_user.return_value = {"access": "a", "refresh": "b"}
         response_for_client.return_value = {"ok": True}
+        send_account_created_email.return_value = False
 
         result = OtpService.verify_otp_code(
             {
@@ -107,7 +110,13 @@ class OtpServiceTests(unittest.TestCase):
             }
         )
 
-        self.assertEqual(result, {"ok": True})
+        self.assertEqual(result["ok"], True)
+        self.assertEqual(result["user_created"], True)
+        self.assertEqual(result["account_created_email_sent"], False)
+        send_account_created_email.assert_called_once_with(
+            user=created_user,
+            raise_on_fail=False,
+        )
         created_user.save.assert_any_call(update_fields=["is_verified", "last_login"])
         user_cls.objects.create_user.assert_called_once_with(
             email="phone_525512345674@otp.local",

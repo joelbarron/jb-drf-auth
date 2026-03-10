@@ -136,6 +136,50 @@ class MailingTemplateTests(unittest.TestCase):
         self.assertIn("verify-email", text_body)
         self.assertIn("verify-email", html_body)
 
+    @override_settings(
+        TEMPLATES=BASE_TEMPLATES,
+        MAILING={
+            "brand": {
+                "app_name": "Mentalysis",
+            },
+        },
+    )
+    def test_password_reset_success_template_renders(self):
+        subject, text_body, html_body = render_email_template(
+            "password_reset_success",
+            {
+                "user_email": "user@example.com",
+            },
+        )
+
+        self.assertTrue(subject)
+        self.assertTrue(text_body)
+        self.assertTrue(html_body)
+        self.assertIn("user@example.com", text_body)
+        self.assertIn("user@example.com", html_body)
+
+    @override_settings(
+        TEMPLATES=BASE_TEMPLATES,
+        MAILING={
+            "brand": {
+                "app_name": "Mentalysis",
+            },
+        },
+    )
+    def test_account_created_template_renders(self):
+        subject, text_body, html_body = render_email_template(
+            "account_created",
+            {
+                "user_email": "user@example.com",
+            },
+        )
+
+        self.assertTrue(subject)
+        self.assertTrue(text_body)
+        self.assertTrue(html_body)
+        self.assertIn("user@example.com", text_body)
+        self.assertIn("user@example.com", html_body)
+
 
 if __name__ == "__main__":
     unittest.main()

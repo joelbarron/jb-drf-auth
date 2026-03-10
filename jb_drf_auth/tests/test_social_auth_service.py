@@ -14,6 +14,66 @@ from jb_drf_auth.services.social_auth import SocialAuthService
 
 
 class SocialAuthServiceTests(unittest.TestCase):
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService._create_user_from_identity")
+    @patch("jb_drf_auth.services.social_auth.EmailConfirmationService.send_account_created_email")
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService._sync_profile_picture")
+    @patch("jb_drf_auth.services.social_auth.ClientService.response_for_client")
+    @patch("jb_drf_auth.services.social_auth.TokensService.get_tokens_for_user")
+    @patch("jb_drf_auth.services.social_auth.User")
+    @patch("jb_drf_auth.services.social_auth.get_social_settings")
+    @patch("jb_drf_auth.services.social_auth.get_social_account_model_cls")
+    @patch("jb_drf_auth.services.social_auth.get_social_provider")
+    def test_login_or_register_sends_account_created_email_for_first_social_signup(
+        self,
+        get_social_provider,
+        get_social_account_model_cls,
+        get_social_settings,
+        user_cls,
+        get_tokens_for_user,
+        response_for_client,
+        _sync_profile_picture,
+        send_account_created_email,
+        create_user_from_identity,
+    ):
+        get_social_settings.return_value = {"LINK_BY_EMAIL": True, "AUTO_CREATE_USER": True}
+        identity = SocialIdentity(
+            provider="google",
+            provider_user_id="sub-new",
+            email="new@example.com",
+            email_verified=True,
+            picture_url=None,
+        )
+        get_social_provider.return_value.authenticate.return_value = identity
+
+        user_cls.objects.filter.return_value.first.return_value = None
+        user = MagicMock()
+        user.id = 77
+        profile = MagicMock()
+        user.get_default_profile.return_value = profile
+        create_user_from_identity.return_value = user
+
+        account_qs = MagicMock()
+        account_qs.select_related.return_value.first.return_value = None
+        social_model = MagicMock()
+        social_model.objects.filter.return_value = account_qs
+        social_model.objects.update_or_create.return_value = (SimpleNamespace(pk=10), True)
+        get_social_account_model_cls.return_value = social_model
+
+        get_tokens_for_user.return_value = {"access": "a", "refresh": "b"}
+        response_for_client.return_value = {"ok": True}
+        send_account_created_email.return_value = True
+
+        result = SocialAuthService.login_or_register(
+            provider_name="google",
+            payload={"id_token": "token"},
+            client="web",
+            device_data=None,
+        )
+
+        send_account_created_email.assert_called_once_with(user=user, raise_on_fail=False)
+        self.assertEqual(result["user_created"], True)
+        self.assertEqual(result["account_created_email_sent"], True)
+
     @patch("jb_drf_auth.services.social_auth.SocialAuthService._sync_profile_picture")
     @patch("jb_drf_auth.services.social_auth.ClientService.response_for_client")
     @patch("jb_drf_auth.services.social_auth.TokensService.get_tokens_for_user")

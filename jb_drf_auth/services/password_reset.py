@@ -92,6 +92,58 @@ class PasswordResetService:
             return False
 
     @staticmethod
+    def send_reset_success_email(user: User, raise_on_fail: bool = False) -> bool:
+        provider_path = get_setting("EMAIL_PROVIDER")
+
+        try:
+            email_log_model = get_email_log_model_cls()
+        except RuntimeError as exc:
+            if raise_on_fail:
+                raise serializers.ValidationError(
+                    {"detail": _("Configura JB_DRF_AUTH_EMAIL_LOG_MODEL para usar email.")}
+                ) from exc
+            return False
+
+        subject, text_body, html_body = render_email_template(
+            "password_reset_success",
+            {
+                "user_email": user.email,
+            },
+        )
+
+        try:
+            provider = get_email_provider()
+            provider.send_email(user.email, subject, text_body, html_body)
+            email_log_model.objects.create(
+                to_email=user.email,
+                subject=subject,
+                text_body=text_body,
+                html_body=html_body,
+                provider=provider_path,
+                status="sent",
+                template_name="password_reset_success",
+            )
+            logger.info("password_reset_success_email_sent email=%s", user.email)
+            return True
+        except Exception as exc:
+            logger.exception("password_reset_success_email_failed email=%s", user.email)
+            email_log_model.objects.create(
+                to_email=user.email,
+                subject=subject,
+                text_body=text_body,
+                html_body=html_body,
+                provider=provider_path,
+                status="failed",
+                error_message=str(exc),
+                template_name="password_reset_success",
+            )
+            if raise_on_fail:
+                raise serializers.ValidationError(
+                    {"detail": _("No se pudo enviar el correo. Intenta mas tarde.")}
+                ) from exc
+            return False
+
+    @staticmethod
     def reset_password(uidb64: str, token: str, new_password: str) -> bool:
         try:
             uid = force_str(urlsafe_base64_decode(uidb64))
@@ -102,6 +154,7 @@ class PasswordResetService:
         if default_token_generator.check_token(user, token):
             user.set_password(new_password)
             user.save()
+            PasswordResetService.send_reset_success_email(user, raise_on_fail=False)
             return True
         return False
 

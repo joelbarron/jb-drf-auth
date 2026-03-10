@@ -7,6 +7,7 @@ from rest_framework.exceptions import APIException, AuthenticationFailed, Thrott
 
 from jb_drf_auth.conf import get_setting
 from jb_drf_auth.services.client import ClientService
+from jb_drf_auth.services.email_confirmation import EmailConfirmationService
 from jb_drf_auth.services.tokens import TokensService
 from jb_drf_auth.utils import (
     get_otp_model_cls,
@@ -173,6 +174,7 @@ class OtpService:
         phone = (otp.phone or "").strip() or None
 
         user = None
+        user_created = False
         if email:
             user = User.objects.filter(email=email).first()
         elif phone:
@@ -185,6 +187,7 @@ class OtpService:
                 phone=phone,
                 is_active=True,
             )
+            user_created = True
 
             profile_model = get_profile_model_cls()
             profile_model.objects.create(
@@ -205,4 +208,11 @@ class OtpService:
 
         profile = user.get_default_profile()
         tokens = TokensService.get_tokens_for_user(user, profile)
-        return ClientService.response_for_client(client, user, profile, tokens, device_data)
+        response = ClientService.response_for_client(client, user, profile, tokens, device_data)
+        response["user_created"] = user_created
+        response["account_created_email_sent"] = (
+            EmailConfirmationService.send_account_created_email(user=user, raise_on_fail=False)
+            if user_created
+            else False
+        )
+        return response
