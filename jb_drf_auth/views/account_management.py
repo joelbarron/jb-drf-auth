@@ -10,10 +10,12 @@ from django.utils.translation import gettext as _
 from jb_drf_auth.serializers import (
     EmailAvailabilitySerializer,
     PhoneAvailabilitySerializer,
+    SocialAccountSerializer,
     UserSerializer,
     UserUpdateSerializer,
     UsernameAvailabilitySerializer,
 )
+from jb_drf_auth.utils import get_social_account_model_cls
 
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
@@ -96,3 +98,13 @@ class EmailAvailabilityView(_BaseAvailabilityView):
 class PhoneAvailabilityView(_BaseAvailabilityView):
     serializer_class = PhoneAvailabilitySerializer
     field_name = "phone"
+
+
+class AccountSocialAccountsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        social_account_model = get_social_account_model_cls()
+        queryset = social_account_model.objects.filter(user=request.user).order_by("provider", "-created")
+        payload = SocialAccountSerializer(queryset, many=True).data
+        return Response(payload, status=status.HTTP_200_OK)

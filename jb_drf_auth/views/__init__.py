@@ -1,4 +1,5 @@
 from jb_drf_auth.views.account_management import (
+    AccountSocialAccountsView,
     AccountUpdateView,
     EmailAvailabilityView,
     PhoneAvailabilityView,
@@ -34,6 +35,7 @@ from jb_drf_auth.views.user_admin import CreateStaffUserView, CreateSuperUserVie
 __all__ = [
     "delete_account",
     "AccountUpdateView",
+    "AccountSocialAccountsView",
     "EmailAvailabilityView",
     "PhoneAvailabilityView",
     "ContactVerificationRequestView",

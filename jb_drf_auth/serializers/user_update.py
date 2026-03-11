@@ -2,6 +2,50 @@ from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from jb_drf_auth.services.contact_verification import ContactVerificationService
+
+
+def _normalize_contact_value(value):
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value.strip()
+    return value
+
+
+def validate_contact_change_proofs(instance, attrs):
+    email_new = _normalize_contact_value(attrs.get("email", serializers.empty))
+    phone_new = _normalize_contact_value(attrs.get("phone", serializers.empty))
+
+    email_changed = email_new is not serializers.empty and email_new != _normalize_contact_value(getattr(instance, "email", None))
+    phone_changed = phone_new is not serializers.empty and phone_new != _normalize_contact_value(getattr(instance, "phone", None))
+
+    if email_changed and email_new:
+        email_proof = attrs.get("email_verification_proof_token")
+        if not email_proof:
+            raise serializers.ValidationError(
+                {"email_verification_proof_token": _("Debes validar el correo con OTP antes de guardarlo.")}
+            )
+        ContactVerificationService.verify_proof_token(
+            email_proof,
+            user_id=instance.pk,
+            channel="email",
+            email=email_new,
+        )
+
+    if phone_changed and phone_new:
+        phone_proof = attrs.get("phone_verification_proof_token")
+        if not phone_proof:
+            raise serializers.ValidationError(
+                {"phone_verification_proof_token": _("Debes validar el telefono con OTP antes de guardarlo.")}
+            )
+        ContactVerificationService.verify_proof_token(
+            phone_proof,
+            user_id=instance.pk,
+            channel="sms",
+            phone=phone_new,
+        )
+
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,6 +59,16 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         fields = super().get_fields()
         fields["language"] = serializers.CharField(required=False, allow_blank=False)
         fields["timezone"] = serializers.CharField(required=False, allow_blank=False)
+        fields["email_verification_proof_token"] = serializers.CharField(
+            required=False,
+            allow_blank=False,
+            write_only=True,
+        )
+        fields["phone_verification_proof_token"] = serializers.CharField(
+            required=False,
+            allow_blank=False,
+            write_only=True,
+        )
         return fields
 
     def validate_email(self, value):
@@ -38,9 +92,16 @@ class UserUpdateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("El telefono ya esta en uso."))
         return value
 
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        validate_contact_change_proofs(self.instance, attrs)
+        return attrs
+
     def update(self, instance, validated_data):
         language = validated_data.pop("language", None)
         timezone = validated_data.pop("timezone", None)
+        validated_data.pop("email_verification_proof_token", None)
+        validated_data.pop("phone_verification_proof_token", None)
 
         instance = super().update(instance, validated_data)
 

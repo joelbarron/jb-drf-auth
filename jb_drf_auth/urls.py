@@ -6,6 +6,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from jb_drf_auth.views import (
     AccountConfirmEmailView,
+    AccountSocialAccountsView,
     ContactVerificationRequestView,
     ContactVerificationVerifyView,
     AccountUpdateView,
@@ -62,6 +63,7 @@ urlpatterns = [
     path("me/", MeView.as_view()),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("account/update/", AccountUpdateView.as_view()),
+    path("account/social-accounts/", AccountSocialAccountsView.as_view()),
     path("account/email-availability/", EmailAvailabilityView.as_view()),
     path("account/phone-availability/", PhoneAvailabilityView.as_view()),
     path("account/username-availability/", UsernameAvailabilityView.as_view()),

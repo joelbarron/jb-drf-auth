@@ -19,7 +19,7 @@
         "**/*.pyc": true,
         "**/*.pyo": true
     },
-    "workbench.colorTheme": "Hack The Box",
+    // "workbench.colorTheme": "Hack The Box",
 
     "python.defaultInterpreterPath": ".venv/bin/python",
     "python.analysis.typeCheckingMode": "basic",

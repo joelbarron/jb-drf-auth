@@ -79,6 +79,7 @@ class MeService:
                 "full_name": profile.full_name,
                 "photoURL": MeService._profile_photo_url(profile),
                 "email": user.email,
+                "phone": getattr(user, "phone", None),
                 "username": user.username,
                 "birthday": profile.birthday,
                 "shortcuts": [],

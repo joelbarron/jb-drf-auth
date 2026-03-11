@@ -27,6 +27,7 @@ from jb_drf_auth.serializers.social_auth import (
     SocialLoginSerializer,
     SocialUnlinkSerializer,
 )
+from jb_drf_auth.serializers.social_account import SocialAccountSerializer
 from jb_drf_auth.serializers.user import UserSerializer
 from jb_drf_auth.serializers.user_admin import UserAdminCreateSerializer
 from jb_drf_auth.serializers.user_update import UserUpdateSerializer
@@ -54,6 +55,7 @@ __all__ = [
     "SocialLoginSerializer",
     "SocialLinkSerializer",
     "SocialUnlinkSerializer",
+    "SocialAccountSerializer",
     "UserSerializer",
     "UserUpdateSerializer",
     "UserAdminCreateSerializer",

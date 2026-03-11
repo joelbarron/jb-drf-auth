@@ -26,7 +26,7 @@ class TestMeService(TestCase):
 
     @patch("jb_drf_auth.services.me.ProfileSerializer")
     def test_get_me_web_uses_profile_role_mapping(self, profile_serializer_cls):
-        user = SimpleNamespace(email="doctor@example.com", username="doctor")
+        user = SimpleNamespace(email="doctor@example.com", phone="+5215512345678", username="doctor")
         profile = SimpleNamespace(
             role="DOCTOR",
             display_name="Doctor Test",
@@ -41,3 +41,4 @@ class TestMeService(TestCase):
 
         self.assertEqual(payload["user"]["role"], ["doctor"])
         self.assertEqual(payload["active_profile"]["role"], "DOCTOR")
+        self.assertEqual(payload["user"]["data"]["phone"], "+5215512345678")
