@@ -1,11 +1,11 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import FieldError
+from django.utils.translation import gettext as _
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from django.utils.translation import gettext as _
 
 from jb_drf_auth.serializers import (
     EmailAvailabilitySerializer,
@@ -15,20 +15,32 @@ from jb_drf_auth.serializers import (
     UserUpdateSerializer,
     UsernameAvailabilitySerializer,
 )
+from jb_drf_auth.services.account_deletion import (
+    AccountDeletionService,
+    DeletionBlockedError,
+)
 from jb_drf_auth.utils import get_social_account_model_cls
+
+
+def _is_truthy(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    return str(value).strip().lower() in {"1", "true", "yes", "si", "sí"}
+
 
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
 def delete_account(request):
-    if request.data.get("confirmation"):
-        user = request.user
-        user.delete()
-        return Response(_("Cuenta eliminada correctamente."), status=status.HTTP_200_OK)
-
-    return Response(
-        _("Debe confirmar la eliminacion de la cuenta."),
-        status=status.HTTP_400_BAD_REQUEST,
-    )
+    try:
+        payload = AccountDeletionService.delete_account(
+            request.user,
+            confirmation=_is_truthy(request.data.get("confirmation")),
+        )
+        return Response(payload, status=status.HTTP_200_OK)
+    except DeletionBlockedError as exc:
+        return Response(exc.payload, status=exc.status_code)
 
 
 class AccountUpdateView(APIView):

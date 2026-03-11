@@ -11,6 +11,7 @@ from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
 
 from jb_drf_auth.exceptions import SocialAuthError
+from jb_drf_auth.services.account_deletion import DeletionBlockedError
 from jb_drf_auth.views.account_management import (
     AccountUpdateView,
     EmailAvailabilityView,
@@ -663,18 +664,27 @@ class EndpointTests(unittest.TestCase):
         response = AccountUpdateView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_delete_account_success(self):
+    @patch("jb_drf_auth.views.account_management.AccountDeletionService.delete_account")
+    def test_delete_account_success(self, delete_account_service):
+        delete_account_service.return_value = {
+            "status": "closed",
+            "anonymized": True,
+            "warnings": [],
+            "detail": "Cuenta eliminada correctamente.",
+        }
         request = self.factory.delete("/auth/account/delete/", {"confirmation": True}, format="json")
         force_authenticate(request, user=self.user)
         response = delete_account(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(self.user.deleted_called)
+        self.assertEqual(response.data["status"], "closed")
+        delete_account_service.assert_called_once()
 
     def test_delete_account_missing_confirmation(self):
         request = self.factory.delete("/auth/account/delete/", {}, format="json")
         force_authenticate(request, user=self.user)
         response = delete_account(request)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data.get("code"), "confirmation_required")
 
     @patch("jb_drf_auth.views.user_admin.UserAdminCreateSerializer")
     @patch("jb_drf_auth.views.user_admin.get_profile_model_cls")
@@ -723,3 +733,20 @@ class EndpointTests(unittest.TestCase):
         view = ProfileViewSet()
         permissions = view.get_permissions()
         self.assertEqual(len(permissions), 1)
+
+    @patch("jb_drf_auth.views.profile.AccountDeletionService.delete_profile")
+    def test_profile_viewset_destroy_returns_structured_error_when_blocked(self, delete_profile):
+        delete_profile.side_effect = DeletionBlockedError(
+            code="profile_is_default",
+            detail="No se puede eliminar el perfil predeterminado.",
+        )
+        request = self.factory.delete("/auth/profiles/1/")
+        force_authenticate(request, user=self.user)
+        view = ProfileViewSet()
+        view.request = request
+        view.get_object = MagicMock(return_value=MagicMock())
+
+        response = view.destroy(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data.get("code"), "profile_is_default")
