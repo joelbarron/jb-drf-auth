@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed, NotFound
+from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from jb_drf_auth.backends import EmailOrUsernameModelBackend
@@ -12,6 +13,13 @@ CLIENT_CHOICES = get_setting("CLIENT_CHOICES")
 
 
 class LoginService:
+    @staticmethod
+    def _touch_last_login(user):
+        if not hasattr(user, "last_login"):
+            return
+        user.last_login = timezone.now()
+        user.save(update_fields=["last_login"])
+
     @staticmethod
     def basic_login(login, password, client, device_data):
         auth_backend = EmailOrUsernameModelBackend()
@@ -35,6 +43,7 @@ class LoginService:
         if getattr(user, "deleted", None):
             raise AuthenticationFailed(_("Esta cuenta esta eliminada."))
 
+        LoginService._touch_last_login(user)
         profile = user.get_default_profile()
         tokens = TokensService.get_tokens_for_user(user=user, profile=profile)
         return ClientService.response_for_client(
@@ -52,5 +61,6 @@ class LoginService:
         except user.profiles.model.DoesNotExist:
             raise NotFound(_("Perfil no encontrado o no pertenece al usuario."))
 
+        LoginService._touch_last_login(user)
         tokens = TokensService.get_tokens_for_user(user, profile)
         return ClientService.response_for_client(client, user, profile, tokens, device_data)

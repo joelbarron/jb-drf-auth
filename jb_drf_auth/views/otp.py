@@ -1,3 +1,5 @@
+from django.db import transaction
+from django.utils.decorators import method_decorator
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,6 +14,7 @@ from jb_drf_auth.throttling import (
 )
 
 
+@method_decorator(transaction.non_atomic_requests, name="dispatch")
 class RequestOtpCodeView(APIView):
     throttle_classes = [OtpRequestIPThrottle, OtpRequestIdentityThrottle]
 

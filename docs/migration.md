@@ -82,6 +82,35 @@ JB_DRF_AUTH = {
 
 Add additional keys based on your flows (frontend URL, providers, throttling, etc.).
 
+If you are enabling social authentication and mobile push-aware device login:
+
+```python
+JB_DRF_AUTH = {
+    "PROFILE_MODEL": "authentication.Profile",
+    "DEVICE_MODEL": "authentication.Device",
+    "OTP_MODEL": "authentication.OtpCode",
+    "SMS_LOG_MODEL": "authentication.SmsLog",
+    "EMAIL_LOG_MODEL": "authentication.EmailLog",
+    "SOCIAL_ACCOUNT_MODEL": "authentication.SocialAccount",
+    "SOCIAL": {
+        "PROVIDERS": {
+            "google": {
+                "CLIENT_IDS": ("<google-web-client-id>", "<google-ios-client-id>"),
+                "TOKEN_URL": "https://oauth2.googleapis.com/token",
+            },
+            "apple": {
+                "CLIENT_IDS": ("<apple-services-id-or-bundle-id>",),
+                "TOKEN_URL": "https://appleid.apple.com/auth/token",
+            },
+            "facebook": {
+                "APP_ID": "<facebook-app-id>",
+                "APP_SECRET": "<facebook-app-secret>",
+            },
+        },
+    },
+}
+```
+
 ## 3) Manager shim for existing migrations
 
 If old project migrations import old paths like:
@@ -121,7 +150,30 @@ If a migration was already applied in prod, changing its imports later can break
 6. Verify admin model registration and queryset behavior.
 7. Verify logs are being written to `SmsLog` and `EmailLog`.
 
-## 6) Can I remove the shim later?
+## 6) New schema additions in recent versions
+
+When upgrading from versions that did not include these fields/models, expect new migrations:
+
+- `Device.notification_token` (for mobile login and push token refresh on login).
+- `SocialAccount` concrete model (if social auth is enabled).
+
+Example concrete model:
+
+```python
+from jb_drf_auth.models import AbstractJbSocialAccount
+
+
+class SocialAccount(AbstractJbSocialAccount):
+    pass
+```
+
+After adding model/fields:
+
+1. `python manage.py makemigrations authentication`
+2. `python manage.py migrate`
+3. Deploy in all environments before enabling social login in frontend.
+
+## 7) Can I remove the shim later?
 
 Only after all of the following are true:
 
@@ -131,7 +183,7 @@ Only after all of the following are true:
 
 In practice, keep the shim. It is low-cost and avoids bootstrap failures.
 
-## 7) Common failures
+## 8) Common failures
 
 ### `ModuleNotFoundError` during migrate
 
@@ -145,7 +197,7 @@ Cause: inconsistent migration states or modified historical migration files.
 
 Fix: stop modifying historical migrations; add forward migrations only.
 
-## 8) Data safety notes
+## 9) Data safety notes
 
 - Backup database before structural changes.
 - Run migration dry-runs in staging with production-like data.

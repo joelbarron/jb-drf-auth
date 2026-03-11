@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ mailing.brand.app_name|default:"Aplicación" }}</title>
+  </head>
+  <body style="margin:0;padding:0;background:{{ mailing.theme.background|default:'#E7E7E7' }};font-family:Arial,Helvetica,sans-serif;color:{{ mailing.theme.text_primary|default:'#212B35' }};">
+    <div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;">
+      {% block preheader %}{% endblock %}
+    </div>
+
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:{{ mailing.theme.background|default:'#E7E7E7' }};padding:20px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;background:{{ mailing.theme.surface|default:'#FFFFFF' }};border-radius:8px;overflow:hidden;">
+            <tr>
+              <td style="padding:24px;background:{{ mailing.theme.primary|default:'#0071CE' }};">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                  <tr>
+                    <td valign="middle" style="width:72px;">
+                      {% if mailing.assets.logo_url %}
+                      <a href="{{ mailing.links.logo_href|default:'#' }}" target="_blank" rel="noopener noreferrer">
+                        <img src="{{ mailing.assets.logo_url }}" alt="{{ mailing.assets.logo_alt|default:'Logo' }}" width="64" style="display:block;border:0;outline:none;" />
+                      </a>
+                      {% endif %}
+                    </td>
+                    <td valign="middle" style="padding-left:12px;">
+                      <p style="margin:0;color:#FFFFFF;font-size:22px;line-height:1.2;font-weight:700;">{% block header_title %}{{ mailing.brand.app_name|default:"Aplicación" }}{% endblock %}</p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:24px;">
+                {% block content %}{% endblock %}
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:16px 24px;border-top:1px solid {{ mailing.theme.divider|default:'#DFE3E8' }};">
+                <p style="margin:0 0 8px 0;color:{{ mailing.theme.text_secondary|default:'#637381' }};font-size:12px;line-height:1.5;">
+                  © {{ mailing.brand.company_name|default:mailing.brand.app_name|default:'Aplicación' }}
+                </p>
+                <p style="margin:0;font-size:12px;line-height:1.5;">
+                  {% if mailing.links.privacy_url %}
+                  <a href="{{ mailing.links.privacy_url }}" target="_blank" rel="noopener noreferrer" style="color:{{ mailing.theme.link|default:'#0071CE' }};text-decoration:none;">Privacidad</a>
+                  {% endif %}
+                  {% if mailing.links.unsubscribe_url %}
+                  {% if mailing.links.privacy_url %}&nbsp;&nbsp;|&nbsp;&nbsp;{% endif %}
+                  <a href="{{ mailing.links.unsubscribe_url }}" target="_blank" rel="noopener noreferrer" style="color:{{ mailing.theme.link|default:'#0071CE' }};text-decoration:none;">Dejar de recibir estos correos</a>
+                  {% endif %}
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

@@ -17,6 +17,7 @@ This package is designed to be installed via PyPI and reused across multiple Dja
 ## Related Docs
 
 - API contract: `API_CONTRACT.md`
+- Social auth guide: `social-auth.md`
 - Migration guide: `migration.md`
 - Release guide: `release.md`
 
@@ -62,13 +63,18 @@ JB_DRF_AUTH = {
     "OTP_MODEL": "authentication.OtpCode",
     "SMS_LOG_MODEL": "authentication.SmsLog",
     "EMAIL_LOG_MODEL": "authentication.EmailLog",
-    "FRONTEND_URL": env("FRONTEND_URL", default="http://localhost:3000"),
+    # Required if you enable social login:
+    # "SOCIAL_ACCOUNT_MODEL": "authentication.SocialAccount",
+    "FRONTEND_URL": env("JB_DRF_AUTH_FRONTEND_URL", default="http://localhost:3000"),
     "DEFAULT_FROM_EMAIL": "no-reply@your-domain.com",
     "AUTHENTICATION_TYPE": "both",  # "email", "username", "both"
     "AUTH_SINGLE_SESSION_ON_MOBILE": env.bool(
         "AUTH_SINGLE_SESSION_ON_MOBILE", default=False
     ),
-    "ADMIN_BOOTSTRAP_TOKEN": env("ADMIN_BOOTSTRAP_TOKEN", default="super-secret-token"),
+    "MOBILE_NOTIFICATION_TOKEN_REQUIRED": env.bool(
+        "MOBILE_NOTIFICATION_TOKEN_REQUIRED", default=False
+    ),
+    "ADMIN_BOOTSTRAP_TOKEN": env("JB_DRF_AUTH_ADMIN_BOOTSTRAP_TOKEN", default="super-secret-token"),
     "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
     "PERSON_ID_DOCUMENTS_UPLOAD_TO": "uploads/people/id-documents",
     "PROFILE_ROLE_CHOICES": (
@@ -84,15 +90,52 @@ JB_DRF_AUTH = {
 
 If you use `env(...)`/`env.bool(...)`, ensure `environ.Env()` is configured in your settings module.
 
+Example `.env` (recommended naming with `JB_DRF_AUTH_` prefix):
+
+```dotenv
+JB_DRF_AUTH_FRONTEND_URL=http://localhost:3000
+JB_DRF_AUTH_ADMIN_BOOTSTRAP_TOKEN=super-secret-token
+
+JB_DRF_AUTH_AUTH_SINGLE_SESSION_ON_MOBILE=False
+JB_DRF_AUTH_MOBILE_NOTIFICATION_TOKEN_REQUIRED=False
+
+JB_DRF_AUTH_TWILIO_ACCOUNT_SID=
+JB_DRF_AUTH_TWILIO_AUTH_TOKEN=
+JB_DRF_AUTH_TWILIO_FROM_NUMBER=
+JB_DRF_AUTH_TWILIO_MESSAGING_SERVICE_SID=
+
+JB_DRF_AUTH_AWS_REGION=us-east-2
+JB_DRF_AUTH_AWS_ACCESS_KEY_ID=
+JB_DRF_AUTH_AWS_SECRET_ACCESS_KEY=
+JB_DRF_AUTH_AWS_SESSION_TOKEN=
+JB_DRF_AUTH_AWS_SNS_ENDPOINT_URL=
+
+JB_DRF_AUTH_SOCIAL_DEBUG_ERRORS=False
+JB_DRF_AUTH_SOCIAL_GOOGLE_CLIENT_ID_WEB=
+JB_DRF_AUTH_SOCIAL_GOOGLE_CLIENT_ID_IOS=
+JB_DRF_AUTH_SOCIAL_GOOGLE_CLIENT_ID_ANDROID=
+JB_DRF_AUTH_SOCIAL_APPLE_CLIENT_ID=
+JB_DRF_AUTH_SOCIAL_APPLE_CLIENT_SECRET=
+JB_DRF_AUTH_SOCIAL_FACEBOOK_APP_ID=
+JB_DRF_AUTH_SOCIAL_FACEBOOK_APP_SECRET=
+```
+
 Optional:
 
 ```python
 JB_DRF_AUTH_AUTHENTICATION_TYPE = "email"  # "email", "username", "both"
 JB_DRF_AUTH_AUTH_SINGLE_SESSION_ON_MOBILE = False
+JB_DRF_AUTH_MOBILE_NOTIFICATION_TOKEN_REQUIRED = False
 JB_DRF_AUTH_ADMIN_BOOTSTRAP_TOKEN = "super-secret"
 JB_DRF_AUTH_PROFILE_PICTURE_UPLOAD_TO = "uploads/users/profile-pictures"
 JB_DRF_AUTH_PERSON_PICTURE_UPLOAD_TO = "uploads/users/profile-pictures"
 JB_DRF_AUTH_PERSON_ID_DOCUMENTS_UPLOAD_TO = "uploads/people/id-documents"
+JB_DRF_AUTH_PROFILE_PICTURE_OPTIMIZE = True
+JB_DRF_AUTH_PROFILE_PICTURE_MAX_BYTES = 1024 * 1024
+JB_DRF_AUTH_PROFILE_PICTURE_MAX_WIDTH = 1080
+JB_DRF_AUTH_PROFILE_PICTURE_MAX_HEIGHT = 1080
+JB_DRF_AUTH_PROFILE_PICTURE_JPEG_QUALITY = 85
+JB_DRF_AUTH_PROFILE_PICTURE_MIN_JPEG_QUALITY = 65
 JB_DRF_AUTH_SMS_PROVIDER = "jb_drf_auth.providers.aws_sns.AwsSnsSmsProvider"
 JB_DRF_AUTH_SMS_SENDER_ID = "YourBrand"
 JB_DRF_AUTH_SMS_TYPE = "Transactional"
@@ -130,6 +173,34 @@ Debug SMS provider (local development):
 JB_DRF_AUTH_SMS_PROVIDER = "jb_drf_auth.providers.console_sms.ConsoleSmsProvider"
 ```
 
+Debug email provider (local development):
+
+```python
+JB_DRF_AUTH_EMAIL_PROVIDER = "jb_drf_auth.providers.console_email.ConsoleEmailProvider"
+```
+
+Twilio SMS provider:
+
+```python
+JB_DRF_AUTH_SMS_PROVIDER = "jb_drf_auth.providers.twilio_sms.TwilioSmsProvider"
+JB_DRF_AUTH_TWILIO_ACCOUNT_SID = env("JB_DRF_AUTH_TWILIO_ACCOUNT_SID")
+JB_DRF_AUTH_TWILIO_AUTH_TOKEN = env("JB_DRF_AUTH_TWILIO_AUTH_TOKEN")
+# Configure one of these:
+JB_DRF_AUTH_TWILIO_FROM_NUMBER = env("JB_DRF_AUTH_TWILIO_FROM_NUMBER", default=None)
+JB_DRF_AUTH_TWILIO_MESSAGING_SERVICE_SID = env("JB_DRF_AUTH_TWILIO_MESSAGING_SERVICE_SID", default=None)
+```
+
+AWS SNS provider (optional explicit credentials/region):
+
+```python
+JB_DRF_AUTH_SMS_PROVIDER = "jb_drf_auth.providers.aws_sns.AwsSnsSmsProvider"
+JB_DRF_AUTH_AWS_REGION = env("JB_DRF_AUTH_AWS_REGION", default=None)
+JB_DRF_AUTH_AWS_ACCESS_KEY_ID = env("JB_DRF_AUTH_AWS_ACCESS_KEY_ID", default=None)
+JB_DRF_AUTH_AWS_SECRET_ACCESS_KEY = env("JB_DRF_AUTH_AWS_SECRET_ACCESS_KEY", default=None)
+JB_DRF_AUTH_AWS_SESSION_TOKEN = env("JB_DRF_AUTH_AWS_SESSION_TOKEN", default=None)
+JB_DRF_AUTH_AWS_SNS_ENDPOINT_URL = env("JB_DRF_AUTH_AWS_SNS_ENDPOINT_URL", default=None)
+```
+
 You can also configure everything using a single dict (copy/paste ready):
 
 ```python
@@ -147,8 +218,15 @@ JB_DRF_AUTH = {
     "AUTHENTICATION_TYPE": "email",  # "email", "username", "both"
     "CLIENT_CHOICES": ("web", "mobile"),
     "AUTH_SINGLE_SESSION_ON_MOBILE": False,
+    "MOBILE_NOTIFICATION_TOKEN_REQUIRED": False,
     "ADMIN_BOOTSTRAP_TOKEN": "super-secret",
     "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
+    "PROFILE_PICTURE_OPTIMIZE": True,
+    "PROFILE_PICTURE_MAX_BYTES": 1024 * 1024,
+    "PROFILE_PICTURE_MAX_WIDTH": 1080,
+    "PROFILE_PICTURE_MAX_HEIGHT": 1080,
+    "PROFILE_PICTURE_JPEG_QUALITY": 85,
+    "PROFILE_PICTURE_MIN_JPEG_QUALITY": 65,
     "PERSON_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
     "PERSON_ID_DOCUMENTS_UPLOAD_TO": "uploads/people/id-documents",
     "PROFILE_ROLE_CHOICES": (
@@ -229,6 +307,7 @@ from jb_drf_auth.models import (
     AbstractJbDevice,
     AbstractJbEmailLog,
     AbstractJbOtpCode,
+    AbstractJbSocialAccount,
     AbstractJbSmsLog,
 )
 
@@ -255,27 +334,43 @@ class SmsLog(AbstractJbSmsLog):
 
 class EmailLog(AbstractJbEmailLog):
     pass
+
+
+class SocialAccount(AbstractJbSocialAccount):
+    pass
 ```
 
-`AbstractJbProfile` includes person fields like `first_name`, `last_name_1`, `last_name_2`,
-`national_id`, `tax_id`, `birthday`, `gender`, contact phones/emails, address fields,
-emergency contact, and identity document files.
-Phone fields are stored in E.164 format (for example: `+525512345678`).
+`AbstractJbProfile` includes core person fields: `first_name`, `last_name_1`, `last_name_2`,
+`birthday`, and `gender`.
+For extended person data (`national_id`, `tax_id`, contact phones/emails, address fields,
+emergency contact, identity document files), use `AbstractPersonCore` in your own models.
+Phone fields in `AbstractPersonCore` are stored in E.164 format (for example: `+525512345678`).
 Both `AbstractJbUser` and `AbstractJbProfile` include a `settings` JSON field for flexible app-level preferences.
 `language` and `timezone` are stored inside `user.settings` and exposed as user-level properties.
+
+Example for extended person models:
+
+```python
+from django.db import models
+from jb_drf_auth.models import AbstractPersonCore
+
+
+class Patient(AbstractPersonCore):
+    profile = models.ForeignKey("authentication.Profile", on_delete=models.CASCADE)
+```
 
 Reusable ownership base models are also available:
 
 ```python
 from django.db import models
-from jb_drf_auth.models import ProfileOwnedModel, UserOwnedModel
+from jb_drf_auth.models import AbstractProfileOwnedModel, AbstractUserOwnedModel
 
 
-class UserNote(UserOwnedModel):
+class UserNote(AbstractUserOwnedModel):
     title = models.CharField(max_length=100)
 
 
-class ProfileAddress(ProfileOwnedModel):
+class ProfileAddress(AbstractProfileOwnedModel):
     line_1 = models.CharField(max_length=255)
 ```
 
@@ -346,6 +441,11 @@ When `TERMS_AND_CONDITIONS_REQUIRED` is enabled, signup requires
 Update authenticated user account fields with:
 
 `PATCH /auth/account/update/`
+
+Check availability before updating registration/account data:
+
+- `GET /auth/account/username-availability/?username=<value>`
+- `GET /auth/account/email-availability/?email=<value>`
 
 Complete onboarding using the existing profile endpoint:
 

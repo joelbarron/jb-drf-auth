@@ -7,6 +7,7 @@ from rest_framework.exceptions import APIException, AuthenticationFailed, Thrott
 
 from jb_drf_auth.conf import get_setting
 from jb_drf_auth.services.client import ClientService
+from jb_drf_auth.services.email_confirmation import EmailConfirmationService
 from jb_drf_auth.services.tokens import TokensService
 from jb_drf_auth.utils import (
     get_otp_model_cls,
@@ -29,6 +30,14 @@ class SmsDeliveryError(APIException):
 
 class OtpService:
     @staticmethod
+    def _build_phone_fallback_email(phone):
+        """
+        Build a deterministic synthetic email for phone-only OTP sign in.
+        """
+        digits = "".join(ch for ch in str(phone or "") if ch.isdigit()) or "unknown"
+        return f"phone_{digits}@otp.local"
+
+    @staticmethod
     def request_otp_code(data):
         otp_length = get_setting("OTP_LENGTH")
         max_value = (10**otp_length) - 1
@@ -44,6 +53,12 @@ class OtpService:
                 raise serializers.ValidationError({"phone": str(exc)}) from exc
 
         otp_model = get_otp_model_cls()
+        user_exist = False
+        if email and User.objects.filter(email=email).exists():
+            user_exist = True
+        elif phone and User.objects.filter(phone=phone).exists():
+            user_exist = True
+
         cooldown_seconds = get_setting("OTP_RESEND_COOLDOWN_SECONDS")
         now = timezone.now()
         latest_qs = otp_model.objects.filter(
@@ -107,7 +122,11 @@ class OtpService:
             )
             print("Sending OTP code:", code)
 
-        return {"detail": _("Código enviado exitosamente."), "channel": otp.channel}
+        return {
+            "detail": _("Código enviado exitosamente."),
+            "channel": otp.channel,
+            "user_exist": user_exist,
+        }
 
     @staticmethod
     def verify_otp_code(data):
@@ -116,6 +135,7 @@ class OtpService:
         phone = data.get("phone")
         client = data.get("client")
         device_data = data.get("device", None)
+        role = data.get("role")
 
         if phone:
             try:
@@ -150,33 +170,49 @@ class OtpService:
         otp.is_used = True
         otp.save(update_fields=["is_used"])
 
-        email = otp.email
-        phone = otp.phone
+        email = (otp.email or "").strip() or None
+        phone = (otp.phone or "").strip() or None
 
         user = None
+        user_created = False
         if email:
             user = User.objects.filter(email=email).first()
         elif phone:
             user = User.objects.filter(phone=phone).first()
 
         if not user:
+            create_email = email or OtpService._build_phone_fallback_email(phone)
             user = User.objects.create_user(
-                email=email,
+                email=create_email,
                 phone=phone,
                 is_active=True,
             )
+            user_created = True
 
             profile_model = get_profile_model_cls()
             profile_model.objects.create(
                 user=user,
-                role=get_setting("DEFAULT_PROFILE_ROLE"),
+                role=role or get_setting("DEFAULT_PROFILE_ROLE"),
                 is_default=True,
             )
 
+        update_fields = []
         if not getattr(user, "is_verified", True):
             user.is_verified = True
-            user.save(update_fields=["is_verified"])
+            update_fields.append("is_verified")
+        if hasattr(user, "last_login"):
+            user.last_login = now
+            update_fields.append("last_login")
+        if update_fields:
+            user.save(update_fields=update_fields)
 
         profile = user.get_default_profile()
         tokens = TokensService.get_tokens_for_user(user, profile)
-        return ClientService.response_for_client(client, user, profile, tokens, device_data)
+        response = ClientService.response_for_client(client, user, profile, tokens, device_data)
+        response["user_created"] = user_created
+        response["account_created_email_sent"] = (
+            EmailConfirmationService.send_account_created_email(user=user, raise_on_fail=False)
+            if user_created
+            else False
+        )
+        return response

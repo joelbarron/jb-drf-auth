@@ -1,0 +1,7 @@
+Verifica tu correo
+
+Hola {{ user_email }},
+
+Verifica tu correo en {{ verify_url }}
+
+Si no solicitaste esta acción, ignora este mensaje.

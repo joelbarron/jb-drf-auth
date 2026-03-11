@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -7,6 +9,8 @@ from safedelete.models import SafeDeleteModel, SOFT_DELETE
 
 from jb_drf_auth.conf import get_setting
 from jb_drf_auth.managers import UserManager
+
+logger = logging.getLogger("jb_drf_auth.models.base")
 
 
 class AbstractTimeStampedModel(models.Model):
@@ -27,7 +31,7 @@ class AbstractSafeDeleteModel(SafeDeleteModel):
         abstract = True
 
 
-class UserOwnedModel(models.Model):
+class AbstractUserOwnedModel(models.Model):
     """
     Abstract base for models owned by a user.
     """
@@ -38,7 +42,7 @@ class UserOwnedModel(models.Model):
         abstract = True
 
 
-class ProfileOwnedModel(models.Model):
+class AbstractProfileOwnedModel(models.Model):
     """
     Abstract base for models owned by a profile.
     """
@@ -51,7 +55,6 @@ class ProfileOwnedModel(models.Model):
 
     class Meta:
         abstract = True
-
 
 class AbstractJbPersonDataModel(models.Model):
     """
@@ -192,7 +195,7 @@ class AbstractJbUser(AbstractSafeDeleteModel, AbstractTimeStampedModel, Abstract
         self.settings = payload
 
 
-class AbstractJbProfile(AbstractSafeDeleteModel, AbstractTimeStampedModel, AbstractPersonCore):
+class AbstractJbProfile(AbstractSafeDeleteModel, AbstractTimeStampedModel, AbstractJbPersonDataModel):
     """
     Abstract base for Profile.
     NOTE: A User has MANY profiles.
@@ -248,9 +251,29 @@ class AbstractJbProfile(AbstractSafeDeleteModel, AbstractTimeStampedModel, Abstr
         return self._join_non_empty([self.first_name, self.last_name_1, self.last_name_2])
 
     def save(self, *args, **kwargs):
+        old_picture_name = None
+        if self.pk:
+            old_picture_name = (
+                type(self).objects.filter(pk=self.pk).values_list("picture", flat=True).first()
+            )
+
         if self.is_default:
-            self.__class__.objects.filter(user=self.user, is_default=True).update(is_default=False)
+            defaults_qs = self.__class__.objects.filter(user=self.user, is_default=True)
+            if self.pk:
+                defaults_qs = defaults_qs.exclude(pk=self.pk)
+            defaults_qs.update(is_default=False)
         super().save(*args, **kwargs)
+
+        new_picture_name = self.picture.name if self.picture else None
+        if old_picture_name and old_picture_name != new_picture_name:
+            try:
+                self.picture.storage.delete(old_picture_name)
+            except Exception:
+                logger.exception(
+                    "profile_picture_cleanup_failed profile_id=%s picture=%s",
+                    getattr(self, "pk", None),
+                    old_picture_name,
+                )
 
 
 class AbstractJbDevice(AbstractSafeDeleteModel, AbstractTimeStampedModel):
@@ -262,6 +285,7 @@ class AbstractJbDevice(AbstractSafeDeleteModel, AbstractTimeStampedModel):
     platform = models.CharField(max_length=250, null=True, blank=True)
     name = models.CharField(max_length=250, null=True, blank=True)
     token = models.CharField(max_length=250, null=True, blank=True)
+    notification_token = models.CharField(max_length=500, null=True, blank=True)
     linked_at = models.DateTimeField(
         "linked at",
         help_text="Date time on which the device was linked to profile.",
@@ -344,3 +368,29 @@ class AbstractJbEmailLog(AbstractTimeStampedModel):
 
     class Meta:
         abstract = True
+
+
+class AbstractJbSocialAccount(AbstractTimeStampedModel):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="social_accounts",
+    )
+    provider = models.CharField(max_length=30, db_index=True)
+    provider_user_id = models.CharField(max_length=255, db_index=True)
+    email = models.EmailField(blank=True, null=True, db_index=True)
+    email_verified = models.BooleanField(default=False)
+    picture_url = models.URLField(max_length=1000, blank=True, null=True)
+    raw_response = models.JSONField(default=dict, blank=True)
+    last_login_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        unique_together = (
+            ("provider", "provider_user_id"),
+            ("user", "provider"),
+        )
+        indexes = [
+            models.Index(fields=["provider", "provider_user_id"]),
+            models.Index(fields=["email"]),
+        ]

@@ -1,16 +1,17 @@
 from .base import (
+    AbstractProfileOwnedModel,
     AbstractPersonCore,
     AbstractJbDevice,
     AbstractJbEmailLog,
     AbstractJbOtpCode,
     AbstractJbPersonDataModel,
     AbstractJbProfile,
+    AbstractJbSocialAccount,
     AbstractJbSmsLog,
     AbstractJbUser,
     AbstractSafeDeleteModel,
     AbstractTimeStampedModel,
-    ProfileOwnedModel,
-    UserOwnedModel,
+    AbstractUserOwnedModel,
 )
 
 __all__ = [
@@ -23,7 +24,8 @@ __all__ = [
     "AbstractJbEmailLog",
     "AbstractJbOtpCode",
     "AbstractJbSmsLog",
+    "AbstractJbSocialAccount",
     "AbstractSafeDeleteModel",
-    "UserOwnedModel",
-    "ProfileOwnedModel",
+    "AbstractUserOwnedModel",
+    "AbstractProfileOwnedModel",
 ]

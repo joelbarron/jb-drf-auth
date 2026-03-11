@@ -10,7 +10,14 @@ django.setup()
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, force_authenticate
 
-from jb_drf_auth.views.account_management import AccountUpdateView, delete_account
+from jb_drf_auth.exceptions import SocialAuthError
+from jb_drf_auth.services.account_deletion import DeletionBlockedError
+from jb_drf_auth.views.account_management import (
+    AccountUpdateView,
+    EmailAvailabilityView,
+    UsernameAvailabilityView,
+    delete_account,
+)
 from jb_drf_auth.views.email_confirmation import (
     AccountConfirmEmailView,
     ResendConfirmationEmailView,
@@ -23,8 +30,14 @@ from jb_drf_auth.views.password_reset import (
     PasswordResetConfirmView,
     PasswordResetRequestView,
 )
-from jb_drf_auth.views.profile import ProfileViewSet
+from jb_drf_auth.views.profile import ProfilePictureUpdateView, ProfileViewSet
 from jb_drf_auth.views.register import RegisterView
+from jb_drf_auth.views.social_auth import (
+    SocialLinkView,
+    SocialLoginView,
+    SocialPrecheckView,
+    SocialUnlinkView,
+)
 from jb_drf_auth.views.user_admin import CreateStaffUserView, CreateSuperUserView
 
 
@@ -39,17 +52,85 @@ class DummyUser:
         self.is_active = kwargs.get("is_active", True)
         self.is_authenticated = kwargs.get("is_authenticated", True)
         self.is_verified = kwargs.get("is_verified", True)
+        self.last_login = kwargs.get("last_login", None)
         self.deleted = kwargs.get("deleted", None)
         self.deleted_called = False
+        self.saved_update_fields = []
 
     def delete(self):
         self.deleted_called = True
+
+    def save(self, *args, **kwargs):
+        self.saved_update_fields.append(kwargs.get("update_fields"))
 
 
 class EndpointTests(unittest.TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         self.user = DummyUser()
+
+    @patch("jb_drf_auth.views.account_management.get_user_model")
+    def test_username_availability_available(self, get_user_model):
+        mock_qs = MagicMock()
+        mock_qs.exists.return_value = False
+        get_user_model.return_value.objects.filter.return_value = mock_qs
+
+        request = self.factory.get("/auth/account/username-availability/?username=newuser")
+        response = UsernameAvailabilityView.as_view()(request)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["field"], "username")
+        self.assertEqual(response.data["value"], "newuser")
+        self.assertTrue(response.data["available"])
+
+    @patch("jb_drf_auth.views.account_management.get_user_model")
+    def test_username_availability_not_available(self, get_user_model):
+        mock_qs = MagicMock()
+        mock_qs.exists.return_value = True
+        get_user_model.return_value.objects.filter.return_value = mock_qs
+
+        request = self.factory.get("/auth/account/username-availability/?username=taken")
+        response = UsernameAvailabilityView.as_view()(request)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["available"])
+        self.assertIn("detail", response.data)
+
+    def test_username_availability_requires_query_param(self):
+        request = self.factory.get("/auth/account/username-availability/")
+        response = UsernameAvailabilityView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("username", response.data)
+
+    @patch("jb_drf_auth.views.account_management.get_user_model")
+    def test_email_availability_available(self, get_user_model):
+        mock_qs = MagicMock()
+        mock_qs.exists.return_value = False
+        get_user_model.return_value.objects.filter.return_value = mock_qs
+
+        request = self.factory.get("/auth/account/email-availability/?email=test@example.com")
+        response = EmailAvailabilityView.as_view()(request)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["field"], "email")
+        self.assertEqual(response.data["value"], "test@example.com")
+        self.assertTrue(response.data["available"])
+
+    @patch("jb_drf_auth.views.account_management.get_user_model")
+    def test_email_availability_excludes_current_authenticated_user(self, get_user_model):
+        mock_filtered = MagicMock()
+        mock_excluded = MagicMock()
+        mock_excluded.exists.return_value = False
+        mock_filtered.exclude.return_value = mock_excluded
+        get_user_model.return_value.objects.filter.return_value = mock_filtered
+
+        request = self.factory.get("/auth/account/email-availability/?email=user@example.com")
+        force_authenticate(request, user=self.user)
+        response = EmailAvailabilityView.as_view()(request)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["available"])
+        mock_filtered.exclude.assert_called_once_with(pk=self.user.pk)
 
     @patch("jb_drf_auth.services.login.LoginService.basic_login")
     def test_basic_login_view_success(self, basic_login):
@@ -95,6 +176,134 @@ class EndpointTests(unittest.TestCase):
         args, _kwargs = response_for_client.call_args
         self.assertEqual(args[0], "web")
         self.assertIsNone(args[4])
+        self.assertIn(["last_login"], user.saved_update_fields)
+
+    @patch("jb_drf_auth.services.client.MeService.get_me_mobile")
+    @patch("jb_drf_auth.services.client.get_device_model_cls")
+    @patch("jb_drf_auth.services.client.get_setting", return_value=True)
+    @patch("jb_drf_auth.services.login.TokensService.get_tokens_for_user")
+    @patch("jb_drf_auth.services.login.EmailOrUsernameModelBackend.authenticate")
+    def test_basic_login_mobile_requires_notification_token_when_enabled(
+        self,
+        authenticate,
+        get_tokens_for_user,
+        _get_setting,
+        get_device_model_cls,
+        get_me_mobile,
+    ):
+        user = DummyUser()
+        user.get_default_profile = MagicMock(return_value=MagicMock())
+        authenticate.return_value = user
+        get_tokens_for_user.return_value = {"access": "x", "refresh": "y"}
+        get_device_model_cls.return_value = MagicMock()
+        get_me_mobile.return_value = {"ok": True}
+
+        request = self.factory.post(
+            "/auth/login/basic/",
+            {
+                "login": "u",
+                "password": "p",
+                "client": "mobile",
+                "device": {"platform": "ios", "name": "iPhone", "token": "t"},
+            },
+            format="json",
+        )
+        response = BasicLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("device", response.data)
+
+    @patch("jb_drf_auth.services.client.MeService.get_me_mobile")
+    @patch("jb_drf_auth.services.client.get_device_model_cls")
+    @patch("jb_drf_auth.services.login.TokensService.get_tokens_for_user")
+    @patch("jb_drf_auth.services.login.EmailOrUsernameModelBackend.authenticate")
+    def test_basic_login_mobile_allows_missing_notification_token_by_default(
+        self,
+        authenticate,
+        get_tokens_for_user,
+        get_device_model_cls,
+        get_me_mobile,
+    ):
+        user = DummyUser()
+        user.get_default_profile = MagicMock(return_value=MagicMock())
+        authenticate.return_value = user
+        get_tokens_for_user.return_value = {"access": "x", "refresh": "y"}
+        device_model = MagicMock()
+        get_device_model_cls.return_value = device_model
+        get_me_mobile.return_value = {"ok": True}
+
+        request = self.factory.post(
+            "/auth/login/basic/",
+            {
+                "login": "u",
+                "password": "p",
+                "client": "mobile",
+                "device": {
+                    "platform": "ios",
+                    "name": "iPhone",
+                    "token": "t",
+                },
+            },
+            format="json",
+        )
+        response = BasicLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("device_registered"), True)
+        device_model.objects.update_or_create.assert_called_once_with(
+            user=user,
+            token="t",
+            defaults={
+                "platform": "ios",
+                "name": "iPhone",
+                "notification_token": None,
+            },
+        )
+
+    @patch("jb_drf_auth.services.client.MeService.get_me_mobile")
+    @patch("jb_drf_auth.services.client.get_device_model_cls")
+    @patch("jb_drf_auth.services.login.TokensService.get_tokens_for_user")
+    @patch("jb_drf_auth.services.login.EmailOrUsernameModelBackend.authenticate")
+    def test_basic_login_mobile_registers_notification_token(
+        self,
+        authenticate,
+        get_tokens_for_user,
+        get_device_model_cls,
+        get_me_mobile,
+    ):
+        user = DummyUser()
+        user.get_default_profile = MagicMock(return_value=MagicMock())
+        authenticate.return_value = user
+        get_tokens_for_user.return_value = {"access": "x", "refresh": "y"}
+        device_model = MagicMock()
+        get_device_model_cls.return_value = device_model
+        get_me_mobile.return_value = {"ok": True}
+
+        request = self.factory.post(
+            "/auth/login/basic/",
+            {
+                "login": "u",
+                "password": "p",
+                "client": "mobile",
+                "device": {
+                    "platform": "ios",
+                    "name": "iPhone",
+                    "token": "t",
+                    "notification_token": "push-123",
+                },
+            },
+            format="json",
+        )
+        response = BasicLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("device_registered"), True)
+        device_model.objects.update_or_create.assert_called_once_with(
+            user=user,
+            token="t",
+            defaults={
+                "platform": "ios",
+                "name": "iPhone",
+                "notification_token": "push-123",
+            },
+        )
 
     @patch("jb_drf_auth.views.login.SwitchProfileSerializer")
     @patch("jb_drf_auth.views.login.LoginService.switch_profile")
@@ -109,6 +318,152 @@ class EndpointTests(unittest.TestCase):
         response = SwitchProfileView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    @patch("jb_drf_auth.views.profile.ProfilePictureUpdateSerializer")
+    def test_profile_picture_update_view_success(self, serializer_cls):
+        serializer = MagicMock()
+        serializer.save.return_value = MagicMock(id=11)
+        serializer_cls.return_value = serializer
+
+        request = self.factory.patch("/auth/profile/picture/", {"picture": "x"}, format="json")
+        force_authenticate(request, user=self.user)
+        response = ProfilePictureUpdateView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("profile_id"), 11)
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.login_or_register")
+    def test_social_login_view_success(self, login_or_register):
+        login_or_register.return_value = {"accessToken": "a", "refreshToken": "b"}
+        request = self.factory.post(
+            "/auth/login/social/",
+            {
+                "provider": "google",
+                "id_token": "token",
+                "client": "web",
+            },
+            format="json",
+        )
+        response = SocialLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.login_or_register")
+    def test_social_login_view_forwards_role(self, login_or_register):
+        login_or_register.return_value = {"accessToken": "a", "refreshToken": "b"}
+        request = self.factory.post(
+            "/auth/login/social/",
+            {
+                "provider": "google",
+                "id_token": "token",
+                "client": "web",
+                "role": "DOCTOR",
+            },
+            format="json",
+        )
+        response = SocialLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(login_or_register.call_args.kwargs.get("role"), "DOCTOR")
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.login_or_register")
+    def test_social_login_view_returns_401_for_invalid_token(self, login_or_register):
+        login_or_register.side_effect = SocialAuthError(
+            "Social token is invalid or expired.",
+            status_code=401,
+            code="social_invalid_token",
+        )
+        request = self.factory.post(
+            "/auth/login/social/",
+            {
+                "provider": "google",
+                "id_token": "token",
+                "client": "web",
+            },
+            format="json",
+        )
+        response = SocialLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data.get("code"), "social_invalid_token")
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.precheck")
+    def test_social_precheck_view_success(self, precheck):
+        precheck.return_value = {
+            "provider": "google",
+            "email": "user@example.com",
+            "email_verified": True,
+            "social_account_exists": False,
+            "linked_existing_user": True,
+            "user_exists": True,
+            "would_create_user": False,
+            "can_login": True,
+        }
+        request = self.factory.post(
+            "/auth/login/social/precheck/",
+            {
+                "provider": "google",
+                "id_token": "token",
+                "client": "web",
+            },
+            format="json",
+        )
+        response = SocialPrecheckView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("linked_existing_user"), True)
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.precheck")
+    def test_social_precheck_view_handles_social_auth_error(self, precheck):
+        precheck.side_effect = SocialAuthError(
+            "Social token is invalid or expired.",
+            status_code=401,
+            code="social_invalid_token",
+        )
+        request = self.factory.post(
+            "/auth/login/social/precheck/",
+            {
+                "provider": "google",
+                "id_token": "token",
+                "client": "web",
+            },
+            format="json",
+        )
+        response = SocialPrecheckView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data.get("code"), "social_invalid_token")
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.link_account")
+    def test_social_link_view_success(self, link_account):
+        link_account.return_value = {"detail": "ok", "provider": "google"}
+        request = self.factory.post(
+            "/auth/login/social/link/",
+            {"provider": "google", "id_token": "token"},
+            format="json",
+        )
+        force_authenticate(request, user=self.user)
+        response = SocialLinkView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @patch("jb_drf_auth.services.social_auth.SocialAuthService.unlink_account")
+    def test_social_unlink_view_success(self, unlink_account):
+        unlink_account.return_value = {"detail": "ok", "provider": "google"}
+        request = self.factory.post(
+            "/auth/login/social/unlink/",
+            {"provider": "google"},
+            format="json",
+        )
+        force_authenticate(request, user=self.user)
+        response = SocialUnlinkView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_social_login_view_unsupported_provider(self):
+        request = self.factory.post(
+            "/auth/login/social/",
+            {
+                "provider": "unknown",
+                "id_token": "token",
+                "client": "web",
+            },
+            format="json",
+        )
+        response = SocialLoginView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     @patch("jb_drf_auth.views.register.RegisterView.get_serializer")
     def test_register_view_created_email_sent(self, get_serializer):
         serializer = MagicMock()
@@ -118,6 +473,7 @@ class EndpointTests(unittest.TestCase):
         request = self.factory.post("/auth/register/", {}, format="json")
         response = RegisterView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data.get("email_sent"), True)
 
     @patch("jb_drf_auth.views.register.RegisterView.get_serializer")
     def test_register_view_created_email_not_sent(self, get_serializer):
@@ -167,6 +523,19 @@ class EndpointTests(unittest.TestCase):
         request = self.factory.post("/auth/otp/verify/", {}, format="json")
         response = VerifyOtpCodeView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @patch("jb_drf_auth.views.otp.OtpCodeVerifySerializer")
+    @patch("jb_drf_auth.views.otp.OtpService.verify_otp_code")
+    def test_verify_otp_code_view_forwards_role(self, verify_otp_code, serializer_cls):
+        serializer = MagicMock()
+        serializer.validated_data = {"code": "123456", "client": "web", "role": "DOCTOR"}
+        serializer_cls.return_value = serializer
+        verify_otp_code.return_value = {"detail": "ok"}
+
+        request = self.factory.post("/auth/otp/verify/", {}, format="json")
+        response = VerifyOtpCodeView.as_view()(request)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        verify_otp_code.assert_called_once_with(serializer.validated_data)
 
     @patch("jb_drf_auth.views.password_reset.PasswordResetRequestSerializer")
     def test_password_reset_request_view_email_sent(self, serializer_cls):
@@ -295,18 +664,27 @@ class EndpointTests(unittest.TestCase):
         response = AccountUpdateView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_delete_account_success(self):
+    @patch("jb_drf_auth.views.account_management.AccountDeletionService.delete_account")
+    def test_delete_account_success(self, delete_account_service):
+        delete_account_service.return_value = {
+            "status": "closed",
+            "anonymized": True,
+            "warnings": [],
+            "detail": "Cuenta eliminada correctamente.",
+        }
         request = self.factory.delete("/auth/account/delete/", {"confirmation": True}, format="json")
         force_authenticate(request, user=self.user)
         response = delete_account(request)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(self.user.deleted_called)
+        self.assertEqual(response.data["status"], "closed")
+        delete_account_service.assert_called_once()
 
     def test_delete_account_missing_confirmation(self):
         request = self.factory.delete("/auth/account/delete/", {}, format="json")
         force_authenticate(request, user=self.user)
         response = delete_account(request)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data.get("code"), "confirmation_required")
 
     @patch("jb_drf_auth.views.user_admin.UserAdminCreateSerializer")
     @patch("jb_drf_auth.views.user_admin.get_profile_model_cls")
@@ -355,3 +733,20 @@ class EndpointTests(unittest.TestCase):
         view = ProfileViewSet()
         permissions = view.get_permissions()
         self.assertEqual(len(permissions), 1)
+
+    @patch("jb_drf_auth.views.profile.AccountDeletionService.delete_profile")
+    def test_profile_viewset_destroy_returns_structured_error_when_blocked(self, delete_profile):
+        delete_profile.side_effect = DeletionBlockedError(
+            code="profile_is_default",
+            detail="No se puede eliminar el perfil predeterminado.",
+        )
+        request = self.factory.delete("/auth/profiles/1/")
+        force_authenticate(request, user=self.user)
+        view = ProfileViewSet()
+        view.request = request
+        view.get_object = MagicMock(return_value=MagicMock())
+
+        response = view.destroy(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data.get("code"), "profile_is_default")

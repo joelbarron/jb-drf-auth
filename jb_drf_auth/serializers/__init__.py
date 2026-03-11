@@ -1,17 +1,33 @@
+from jb_drf_auth.serializers.availability import (
+    EmailAvailabilitySerializer,
+    PhoneAvailabilitySerializer,
+    UsernameAvailabilitySerializer,
+)
+from jb_drf_auth.serializers.contact_verification import (
+    ContactVerificationRequestSerializer,
+    ContactVerificationVerifySerializer,
+)
 from jb_drf_auth.serializers.device import DevicePayloadSerializer, DeviceSerializer
 from jb_drf_auth.serializers.email_confirmation import (
     EmailConfirmationSerializer,
     ResendConfirmationEmailSerializer,
 )
 from jb_drf_auth.serializers.login import BasicLoginSerializer, SwitchProfileSerializer
+from jb_drf_auth.serializers.magic_link import MagicLinkConsumeSerializer
 from jb_drf_auth.serializers.otp import OtpCodeRequestSerializer, OtpCodeVerifySerializer
 from jb_drf_auth.serializers.password_reset import (
     PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
 )
-from jb_drf_auth.serializers.profile import ProfileSerializer
+from jb_drf_auth.serializers.profile import ProfilePictureUpdateSerializer, ProfileSerializer
 from jb_drf_auth.serializers.register import RegisterSerializer
+from jb_drf_auth.serializers.social_auth import (
+    SocialLinkSerializer,
+    SocialLoginSerializer,
+    SocialUnlinkSerializer,
+)
+from jb_drf_auth.serializers.social_account import SocialAccountSerializer
 from jb_drf_auth.serializers.user import UserSerializer
 from jb_drf_auth.serializers.user_admin import UserAdminCreateSerializer
 from jb_drf_auth.serializers.user_update import UserUpdateSerializer
@@ -19,9 +35,14 @@ from jb_drf_auth.serializers.user_update import UserUpdateSerializer
 __all__ = [
     "DevicePayloadSerializer",
     "DeviceSerializer",
+    "ContactVerificationRequestSerializer",
+    "ContactVerificationVerifySerializer",
+    "EmailAvailabilitySerializer",
+    "PhoneAvailabilitySerializer",
     "EmailConfirmationSerializer",
     "ResendConfirmationEmailSerializer",
     "BasicLoginSerializer",
+    "MagicLinkConsumeSerializer",
     "SwitchProfileSerializer",
     "OtpCodeRequestSerializer",
     "OtpCodeVerifySerializer",
@@ -29,8 +50,14 @@ __all__ = [
     "PasswordResetConfirmSerializer",
     "PasswordResetRequestSerializer",
     "ProfileSerializer",
+    "ProfilePictureUpdateSerializer",
     "RegisterSerializer",
+    "SocialLoginSerializer",
+    "SocialLinkSerializer",
+    "SocialUnlinkSerializer",
+    "SocialAccountSerializer",
     "UserSerializer",
     "UserUpdateSerializer",
     "UserAdminCreateSerializer",
+    "UsernameAvailabilitySerializer",
 ]

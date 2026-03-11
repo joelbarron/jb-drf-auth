@@ -7,17 +7,20 @@ DEFAULTS = {
     "AUTHENTICATION_TYPE": "email",  # "email", "username", "both"
     "CLIENT_CHOICES": ("web", "mobile"),
     "AUTH_SINGLE_SESSION_ON_MOBILE": False,
+    "MOBILE_NOTIFICATION_TOKEN_REQUIRED": False,
     "FRONTEND_URL": None,
     "DEFAULT_FROM_EMAIL": None,
     "TERMS_AND_CONDITIONS_REQUIRED": True,
     "EMAIL_PROVIDER": "jb_drf_auth.providers.django_email.DjangoEmailProvider",
     "EMAIL_LOG_MODEL": None,  # required for email flows: "authentication.EmailLog"
     "EMAIL_TEMPLATES": None,
+    "MAILING": None,
     "ADMIN_BOOTSTRAP_TOKEN": None,
     "OTP_LENGTH": 6,
     "OTP_TTL_SECONDS": 300,
     "OTP_MAX_ATTEMPTS": 5,
     "OTP_RESEND_COOLDOWN_SECONDS": 60,
+    "OTP_PHONE_EMAIL_DOMAIN": "phone.local",
     "PROFILE_ROLE_CHOICES": (
         ("USER", "Usuario"),
         ("COMMERCE", "Comercio"),
@@ -32,16 +35,42 @@ DEFAULTS = {
     "DEFAULT_PROFILE_ROLE": "USER",
     "PROFILE_ID_CLAIM": "profile_id",
     "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
+    "PROFILE_PICTURE_OPTIMIZE": True,
+    "PROFILE_PICTURE_MAX_BYTES": 1024 * 1024,
+    "PROFILE_PICTURE_MAX_WIDTH": 1080,
+    "PROFILE_PICTURE_MAX_HEIGHT": 1080,
+    "PROFILE_PICTURE_JPEG_QUALITY": 85,
+    "PROFILE_PICTURE_MIN_JPEG_QUALITY": 65,
     "PERSON_PICTURE_UPLOAD_TO": None,
     "PERSON_ID_DOCUMENTS_UPLOAD_TO": "uploads/people/id-documents",
+    "ACCOUNT_PROVISION_SEND_VERIFICATION": False,
+    "ACCOUNT_PROVISION_VERIFICATION_CHANNEL": "auto",
+    "ACCOUNT_PROVISION_ALLOW_VERIFICATION_FALLBACK": True,
+    "ACCOUNT_PROVISION_VERIFICATION_RAISE_ON_FAIL": False,
     "SMS_PROVIDER": "jb_drf_auth.providers.aws_sns.AwsSnsSmsProvider",
+    "AWS_REGION": None,
+    "AWS_ACCESS_KEY_ID": None,
+    "AWS_SECRET_ACCESS_KEY": None,
+    "AWS_SESSION_TOKEN": None,
+    "AWS_SNS_ENDPOINT_URL": None,
     "SMS_SENDER_ID": None,
     "SMS_TYPE": "Transactional",
     "SMS_OTP_MESSAGE": "Tu codigo es {code}. Expira en {minutes} minutos.",
+    "TWILIO_ACCOUNT_SID": None,
+    "TWILIO_AUTH_TOKEN": None,
+    "TWILIO_FROM_NUMBER": None,
+    "TWILIO_MESSAGING_SERVICE_SID": None,
     "SMS_LOG_MODEL": None,  # optional: "accounts.SmsLog"
     "PHONE_DEFAULT_COUNTRY_CODE": None,
     "PHONE_MIN_LENGTH": 10,
     "PHONE_MAX_LENGTH": 15,
+    "CONTACT_VERIFICATION_PROOF_TTL_SECONDS": 1800,
+    "ACCOUNT_DELETION_HANDLERS": (),
+    "PROFILE_DELETION_HANDLERS": (),
+    "MAGIC_LINK_TTL_SECONDS": 900,
+    "MAGIC_LINK_FRONTEND_PATH": "/sign-in",
+    "MAGIC_LINK_QUERY_PARAM": "mlt",
+    "SMS_MAGIC_LINK_MESSAGE": "Tu acceso a Mentalysis es {url}. Expira en {minutes} minutos.",
     "THROTTLE_ENABLED": True,
     "THROTTLE_RATES": {
         "LOGIN_IP": "20/min",
@@ -59,6 +88,42 @@ DEFAULTS = {
         "EMAIL_CONFIRMATION_RESEND_IP": "10/hour",
         "EMAIL_CONFIRMATION_RESEND_IDENTITY": "5/hour",
     },
+    "SOCIAL_ACCOUNT_MODEL": None,  # required for social login: "authentication.SocialAccount"
+    "SOCIAL": {
+        "DEBUG_ERRORS": False,
+        "AUTO_CREATE_USER": True,
+        "LINK_BY_EMAIL": True,
+        "REQUIRE_VERIFIED_EMAIL": True,
+        "SYNC_PICTURE_ON_LOGIN": True,
+        "PICTURE_DOWNLOAD_TIMEOUT_SECONDS": 5,
+        "PICTURE_MAX_BYTES": 5 * 1024 * 1024,
+        "PICTURE_ALLOWED_CONTENT_TYPES": ("image/jpeg", "image/png", "image/webp"),
+        "PROVIDERS": {
+            "google": {
+                "CLASS": "jb_drf_auth.providers.google_oidc.GoogleOidcProvider",
+                "CLIENT_IDS": (),
+                "CLIENT_SECRET": None,
+                "ISSUER": "https://accounts.google.com",
+                "JWKS_URL": "https://www.googleapis.com/oauth2/v3/certs",
+                "TOKEN_URL": "https://oauth2.googleapis.com/token",
+            },
+            "apple": {
+                "CLASS": "jb_drf_auth.providers.apple_oidc.AppleOidcProvider",
+                "CLIENT_IDS": (),
+                "CLIENT_SECRET": None,
+                "ISSUER": "https://appleid.apple.com",
+                "JWKS_URL": "https://appleid.apple.com/auth/keys",
+                "TOKEN_URL": "https://appleid.apple.com/auth/token",
+            },
+            "facebook": {
+                "CLASS": "jb_drf_auth.providers.facebook_oauth.FacebookOAuthProvider",
+                "APP_ID": None,
+                "APP_SECRET": None,
+                "GRAPH_API_VERSION": "v21.0",
+                "ASSUME_EMAIL_VERIFIED": True,
+            },
+        },
+    },
 }
 
 PREFIX = "JB_DRF_AUTH_"
@@ -66,6 +131,13 @@ ROOT_SETTING = "JB_DRF_AUTH"
 
 
 def get_setting(name: str):
+    if name in {"SMS_PROVIDER", "EMAIL_PROVIDER"}:
+        legacy_name = f"{PREFIX}{name}"
+        if hasattr(settings, legacy_name):
+            legacy_value = getattr(settings, legacy_name)
+            if legacy_value is not None:
+                return legacy_value
+
     root = getattr(settings, ROOT_SETTING, None)
     if isinstance(root, dict) and name in root:
         return root[name]
@@ -75,3 +147,60 @@ def get_setting(name: str):
     if hasattr(settings, name):
         return getattr(settings, name)
     return DEFAULTS.get(name)
+
+
+def get_social_settings():
+    defaults = DEFAULTS["SOCIAL"]
+    configured = get_setting("SOCIAL")
+    if not isinstance(configured, dict):
+        return defaults
+
+    merged = {**defaults, **configured}
+    default_providers = defaults.get("PROVIDERS", {})
+    configured_providers = configured.get("PROVIDERS", {})
+
+    providers = {}
+    if isinstance(default_providers, dict):
+        for provider_name, provider_cfg in default_providers.items():
+            providers[provider_name] = (
+                dict(provider_cfg) if isinstance(provider_cfg, dict) else provider_cfg
+            )
+
+    if isinstance(configured_providers, dict):
+        for provider_name, provider_cfg in configured_providers.items():
+            base_cfg = providers.get(provider_name, {})
+            if isinstance(base_cfg, dict) and isinstance(provider_cfg, dict):
+                providers[provider_name] = {**base_cfg, **provider_cfg}
+            else:
+                providers[provider_name] = provider_cfg
+
+    # Normalize providers and remove empty client IDs.
+    for provider_name, provider_cfg in list(providers.items()):
+        if not isinstance(provider_cfg, dict):
+            continue
+        client_ids = provider_cfg.get("CLIENT_IDS")
+        if isinstance(client_ids, str):
+            client_ids = (client_ids,)
+        normalized_client_ids = []
+        if isinstance(client_ids, (tuple, list)):
+            normalized_client_ids.extend(client_ids)
+        # Allow discrete keys instead of a tuple in integrator settings.
+        normalized_client_ids.extend(
+            [
+                provider_cfg.get("CLIENT_ID"),
+                provider_cfg.get("CLIENT_ID_WEB"),
+                provider_cfg.get("CLIENT_ID_IOS"),
+                provider_cfg.get("CLIENT_ID_ANDROID"),
+            ]
+        )
+        cleaned = []
+        for value in normalized_client_ids:
+            if not isinstance(value, str):
+                continue
+            value = value.strip()
+            if value and value not in cleaned:
+                cleaned.append(value)
+        providers[provider_name]["CLIENT_IDS"] = tuple(cleaned)
+
+    merged["PROVIDERS"] = providers
+    return merged

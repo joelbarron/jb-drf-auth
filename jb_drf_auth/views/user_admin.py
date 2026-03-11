@@ -72,9 +72,15 @@ class CreateStaffUserView(APIView):
         )
 
         profile_model = get_profile_model_cls()
+        role_choices = {
+            str(choice[0]).upper()
+            for choice in getattr(profile_model, "ROLE_CHOICES", ())
+            if isinstance(choice, (tuple, list)) and choice
+        }
+        staff_role = "STAFF" if "STAFF" in role_choices else "ADMIN"
         profile_model.objects.create(
             user=user,
-            role="ADMIN",
+            role=staff_role,
             is_active=True,
             is_default=True,
             gender="OTHER",

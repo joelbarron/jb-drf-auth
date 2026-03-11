@@ -1,10 +1,7 @@
 from django.contrib.auth import get_user_model
-from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from jb_drf_auth.conf import get_setting
-from jb_drf_auth.services.email_confirmation import EmailConfirmationService
-from jb_drf_auth.utils import get_profile_model_cls
+from jb_drf_auth.services.account_provisioning import AccountProvisioningService
 
 
 User = get_user_model()
@@ -33,27 +30,26 @@ class RegisterService:
         if username and User.objects.filter(username=username).exists():
             raise ValueError(_("El nombre de usuario ya esta en uso."))
 
-        user = User.objects.create_user(
+        result = AccountProvisioningService.provision_account(
             email=email,
             username=username,
             password=password,
             is_active=False,
+            role=role,
+            profile_data={
+                "first_name": first_name,
+                "last_name_1": last_name_1,
+                "last_name_2": last_name_2,
+                "birthday": birthday,
+                "gender": gender,
+            },
+            terms_and_conditions_accepted=terms_and_conditions_accepted,
+            send_verification=True,
+            verification_channel="email",
+            allow_verification_fallback=False,
+            verification_raise_on_fail=False,
         )
-        if terms_and_conditions_accepted and hasattr(user, "terms_and_conditions"):
-            user.terms_and_conditions = timezone.now()
-            user.save(update_fields=["terms_and_conditions"])
+        user = result["user"]
 
-        profile_model = get_profile_model_cls()
-        profile_model.objects.create(
-            user=user,
-            first_name=first_name,
-            last_name_1=last_name_1,
-            last_name_2=last_name_2,
-            birthday=birthday,
-            gender=gender,
-            role=role or get_setting("DEFAULT_PROFILE_ROLE"),
-            is_default=True,
-        )
-
-        email_sent = EmailConfirmationService.send_verification_email(user, raise_on_fail=False)
+        email_sent = bool(result.get("verification", {}).get("sent"))
         return user, email_sent

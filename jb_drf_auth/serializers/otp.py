@@ -30,6 +30,7 @@ class OtpCodeVerifySerializer(serializers.Serializer):
     code = serializers.CharField(min_length=OTP_LENGTH, max_length=OTP_LENGTH)
     client = serializers.ChoiceField(choices=CLIENT_CHOICES)
     device = DevicePayloadSerializer(write_only=True, required=False)
+    role = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def validate(self, data):
         if not data.get("email") and not data.get("phone"):

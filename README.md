@@ -1,6 +1,12 @@
 # jb-drf-auth
 
+[![PyPI Version](https://img.shields.io/pypi/v/jb-drf-auth?label=PyPI)](https://pypi.org/project/jb-drf-auth/)
+[![TestPyPI](https://img.shields.io/badge/TestPyPI-jb--drf--auth-1f6feb)](https://test.pypi.org/project/jb-drf-auth/)
+
 Reusable authentication module for Django + Django REST Framework.
+
+PyPI: https://pypi.org/project/jb-drf-auth/  
+TestPyPI: https://test.pypi.org/project/jb-drf-auth/
 
 `jb-drf-auth` is a reusable foundation for authentication flows across projects, including:
 
@@ -24,6 +30,7 @@ Add `jb_drf_auth` and `rest_framework` to `INSTALLED_APPS`.
 - Main docs index: `docs/README.md`
 - Getting started and configuration: `docs/getting-started.md`
 - API contract (endpoint by endpoint): `docs/API_CONTRACT.md`
+- Social authentication guide: `docs/social-auth.md`
 - Migration guide: `docs/migration.md`
 - i18n integration guide: `docs/i18n.md`
 - Release guide: `docs/release.md`
@@ -41,13 +48,16 @@ JB_DRF_AUTH = {
     "OTP_MODEL": "authentication.OtpCode",
     "SMS_LOG_MODEL": "authentication.SmsLog",
     "EMAIL_LOG_MODEL": "authentication.EmailLog",
-    "FRONTEND_URL": env("FRONTEND_URL", default="http://localhost:3000"),
+    "FRONTEND_URL": env("JB_DRF_AUTH_FRONTEND_URL", default="http://localhost:3000"),
     "DEFAULT_FROM_EMAIL": "no-reply@your-domain.com",
     "AUTHENTICATION_TYPE": "both",  # "email", "username", "both"
     "AUTH_SINGLE_SESSION_ON_MOBILE": env.bool(
         "AUTH_SINGLE_SESSION_ON_MOBILE", default=False
     ),
-    "ADMIN_BOOTSTRAP_TOKEN": env("ADMIN_BOOTSTRAP_TOKEN", default="super-secret-token"),
+    "MOBILE_NOTIFICATION_TOKEN_REQUIRED": env.bool(
+        "MOBILE_NOTIFICATION_TOKEN_REQUIRED", default=False
+    ),
+    "ADMIN_BOOTSTRAP_TOKEN": env("JB_DRF_AUTH_ADMIN_BOOTSTRAP_TOKEN", default="super-secret-token"),
     "PROFILE_PICTURE_UPLOAD_TO": "uploads/users/profile-pictures",
     "PERSON_ID_DOCUMENTS_UPLOAD_TO": "uploads/people/id-documents",
     "PROFILE_ROLE_CHOICES": (
@@ -62,6 +72,7 @@ JB_DRF_AUTH = {
 ```
 
 If you use `env(...)`/`env.bool(...)`, ensure `environ.Env()` is configured in your settings module.
+Recommended convention: use `JB_DRF_AUTH_` prefix for library-related env vars.
 3. Mount URLs:
 
 ```python

@@ -1,0 +1,137 @@
+import os
+import unittest
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+import django
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jb_drf_auth.tests.settings")
+django.setup()
+
+from jb_drf_auth.services.password_reset import PasswordResetService
+
+
+class PasswordResetServiceTests(unittest.TestCase):
+    @patch("jb_drf_auth.services.password_reset.get_setting")
+    @patch("jb_drf_auth.services.password_reset.get_email_provider")
+    @patch("jb_drf_auth.services.password_reset.get_email_log_model_cls")
+    @patch("jb_drf_auth.services.password_reset.render_email_template")
+    @patch("jb_drf_auth.services.password_reset.User")
+    def test_send_reset_email_sent_and_logged(
+        self,
+        user_cls,
+        render_email_template,
+        get_email_log_model_cls,
+        get_email_provider,
+        get_setting,
+    ):
+        user = SimpleNamespace(
+            pk=1,
+            email="user@example.com",
+            password="pbkdf2_sha256$260000$mock$hash",
+            last_login=None,
+        )
+        user.get_email_field_name = lambda: "email"
+        user_cls.objects.get.return_value = user
+        render_email_template.return_value = ("Reset", "text body", "<p>html body</p>")
+        get_setting.side_effect = lambda key: {
+            "EMAIL_PROVIDER": "jb_drf_auth.providers.console_email.ConsoleEmailProvider",
+            "FRONTEND_URL": "http://localhost:3000",
+        }.get(key)
+
+        email_log_model = MagicMock()
+        get_email_log_model_cls.return_value = email_log_model
+        provider = MagicMock()
+        get_email_provider.return_value = provider
+
+        sent = PasswordResetService.send_reset_email("user@example.com", raise_on_fail=False)
+
+        self.assertEqual(sent, True)
+        provider.send_email.assert_called_once()
+        email_log_model.objects.create.assert_called_once()
+        self.assertEqual(email_log_model.objects.create.call_args.kwargs["status"], "sent")
+
+    @patch("jb_drf_auth.services.password_reset.get_setting")
+    @patch("jb_drf_auth.services.password_reset.get_email_log_model_cls")
+    @patch("jb_drf_auth.services.password_reset.User")
+    def test_send_reset_email_user_not_found_logs_failed(
+        self,
+        user_cls,
+        get_email_log_model_cls,
+        get_setting,
+    ):
+        does_not_exist = type("DoesNotExist", (Exception,), {})
+        user_cls.DoesNotExist = does_not_exist
+        user_cls.objects.get.side_effect = does_not_exist
+        get_setting.side_effect = lambda key: {
+            "EMAIL_PROVIDER": "jb_drf_auth.providers.console_email.ConsoleEmailProvider",
+        }.get(key)
+
+        email_log_model = MagicMock()
+        get_email_log_model_cls.return_value = email_log_model
+
+        sent = PasswordResetService.send_reset_email("missing@example.com", raise_on_fail=False)
+
+        self.assertEqual(sent, False)
+        email_log_model.objects.create.assert_called_once()
+        kwargs = email_log_model.objects.create.call_args.kwargs
+        self.assertEqual(kwargs["to_email"], "missing@example.com")
+        self.assertEqual(kwargs["status"], "failed")
+        self.assertEqual(kwargs["error_message"], "user_not_found")
+
+    @patch("jb_drf_auth.services.password_reset.get_setting")
+    @patch("jb_drf_auth.services.password_reset.get_email_provider")
+    @patch("jb_drf_auth.services.password_reset.get_email_log_model_cls")
+    @patch("jb_drf_auth.services.password_reset.render_email_template")
+    def test_send_reset_success_email_sent_and_logged(
+        self,
+        render_email_template,
+        get_email_log_model_cls,
+        get_email_provider,
+        get_setting,
+    ):
+        user = SimpleNamespace(
+            email="user@example.com",
+        )
+        render_email_template.return_value = ("Done", "text body", "<p>html body</p>")
+        get_setting.side_effect = lambda key: {
+            "EMAIL_PROVIDER": "jb_drf_auth.providers.console_email.ConsoleEmailProvider",
+        }.get(key)
+
+        email_log_model = MagicMock()
+        get_email_log_model_cls.return_value = email_log_model
+        provider = MagicMock()
+        get_email_provider.return_value = provider
+
+        sent = PasswordResetService.send_reset_success_email(user, raise_on_fail=False)
+
+        self.assertEqual(sent, True)
+        provider.send_email.assert_called_once()
+        email_log_model.objects.create.assert_called_once()
+        self.assertEqual(email_log_model.objects.create.call_args.kwargs["template_name"], "password_reset_success")
+
+    @patch("jb_drf_auth.services.password_reset.PasswordResetService.send_reset_success_email")
+    @patch("jb_drf_auth.services.password_reset.default_token_generator")
+    @patch("jb_drf_auth.services.password_reset.User")
+    @patch("jb_drf_auth.services.password_reset.force_str")
+    @patch("jb_drf_auth.services.password_reset.urlsafe_base64_decode")
+    def test_reset_password_sends_success_email_when_token_is_valid(
+        self,
+        urlsafe_base64_decode,
+        force_str,
+        user_cls,
+        default_token_generator,
+        send_reset_success_email,
+    ):
+        force_str.return_value = "1"
+        urlsafe_base64_decode.return_value = b"1"
+        user = MagicMock()
+        user_cls.objects.get.return_value = user
+        default_token_generator.check_token.return_value = True
+
+        result = PasswordResetService.reset_password("uid", "token", "new-password")
+
+        self.assertTrue(result)
+        user.set_password.assert_called_once_with("new-password")
+        user.save.assert_called_once()
+        send_reset_success_email.assert_called_once_with(user, raise_on_fail=False)

@@ -22,6 +22,65 @@ Follow these steps **exactly** every time.
 
 Use workflow: `.github/workflows/release-automation.yml`
 
+### Required one-time setup
+
+Create repository secret:
+
+- `RELEASE_BOT_TOKEN`
+
+This token must belong to a bot/service user and have permissions to:
+
+- push commits/tags to the repository
+- create GitHub Releases
+
+Why this is required:
+
+- If you use default `GITHUB_TOKEN`, pushes/releases created by that token do not
+  trigger other workflows (`push`/`release`) in chained automation scenarios.
+- Using `RELEASE_BOT_TOKEN` allows `Release Automation` to trigger:
+  - `Publish to TestPyPI` (on RC tags)
+  - `Publish to PyPI` (on published releases)
+
+### Exact steps to create `RELEASE_BOT_TOKEN` (Fine-grained PAT)
+
+1. Sign in with the bot/service GitHub account (or a dedicated release account).
+2. Open `Settings` -> `Developer settings` -> `Personal access tokens` -> `Fine-grained tokens`.
+3. Click `Generate new token`.
+4. Configure:
+   - `Token name`: `jb-drf-auth-release-bot`
+   - `Expiration`: according to your policy (for example 90 days)
+   - `Resource owner`: your user/org that owns this repository
+   - `Repository access`: `Only select repositories`
+   - Select repository: `jb-drf-auth`
+5. Under `Repository permissions`, grant:
+   - `Contents`: `Read and write`
+   - `Metadata`: `Read` (usually default)
+6. Click `Generate token`.
+7. Copy the token value immediately (shown once).
+
+### Store token as GitHub Actions secret
+
+1. Open repository `Settings` -> `Secrets and variables` -> `Actions`.
+2. Click `New repository secret`.
+3. Name: `RELEASE_BOT_TOKEN`.
+4. Paste the token and save.
+
+### Quick validation
+
+1. Run `Release Automation` with an RC input.
+2. Confirm:
+   - `Release Automation` succeeds.
+   - Commit and RC tag are pushed.
+   - `Publish to TestPyPI` is triggered automatically.
+
+### Classic PAT fallback (less recommended)
+
+If your org does not allow fine-grained PATs, use a classic PAT with:
+
+- `repo` scope
+
+Then save it as the same secret name: `RELEASE_BOT_TOKEN`.
+
 Trigger it manually from GitHub Actions with:
 
 - `release_type`: `rc` or `stable`
@@ -100,6 +159,25 @@ Versioning rule:
 - Never reuse a published version.
 - If a release fails or needs fixes, publish a new version (`rc2`, `rc3`, or next patch).
 
+## Step-by-step usage (after your code is ready)
+
+1. Merge your changes into `main`.
+2. Ensure CI is green.
+3. Go to GitHub -> `Actions` -> `Release Automation` -> `Run workflow`.
+4. For RC:
+   - `release_type=rc`
+   - `version=X.Y.Z`
+   - `rc_number=N`
+   - `target_branch=main`
+5. For stable:
+   - `release_type=stable`
+   - `version=X.Y.Z`
+   - `target_branch=main`
+6. Verify chained workflows:
+   - RC path: `Publish to TestPyPI` runs automatically.
+   - Stable path: `Publish to PyPI` runs automatically.
+7. Validate package availability on TestPyPI/PyPI.
+
 ---
 
 ## Local validation (REQUIRED)
@@ -108,6 +186,12 @@ Run these commands locally (inside a virtual environment) **before any release**
 
 ```bash
 sh test_before_publish.sh
+```
+
+And run API docs sync checks:
+
+```bash
+python scripts/check_api_docs.py
 ```
 
 If any step fails, **DO NOT RELEASE**.

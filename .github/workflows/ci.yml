@@ -28,6 +28,10 @@ jobs:
         run: |
           ruff check --select F,E9 jb_drf_auth
 
+      - name: Validate API docs and Postman sync
+        run: |
+          python scripts/check_api_docs.py
+
       - name: Run tests
         env:
           DJANGO_SETTINGS_MODULE: jb_drf_auth.tests.settings

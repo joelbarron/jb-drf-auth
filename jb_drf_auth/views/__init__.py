@@ -1,9 +1,20 @@
-from jb_drf_auth.views.account_management import AccountUpdateView, delete_account
+from jb_drf_auth.views.account_management import (
+    AccountSocialAccountsView,
+    AccountUpdateView,
+    EmailAvailabilityView,
+    PhoneAvailabilityView,
+    UsernameAvailabilityView,
+    delete_account,
+)
+from jb_drf_auth.views.contact_verification import (
+    ContactVerificationRequestView,
+    ContactVerificationVerifyView,
+)
 from jb_drf_auth.views.email_confirmation import (
     AccountConfirmEmailView,
     ResendConfirmationEmailView,
 )
-from jb_drf_auth.views.login import BasicLoginView, SwitchProfileView
+from jb_drf_auth.views.login import BasicLoginView, MagicLinkConsumeView, SwitchProfileView
 from jb_drf_auth.views.me import MeView
 from jb_drf_auth.views.otp import RequestOtpCodeView, VerifyOtpCodeView
 from jb_drf_auth.views.password_reset import (
@@ -11,16 +22,28 @@ from jb_drf_auth.views.password_reset import (
     PasswordResetConfirmView,
     PasswordResetRequestView,
 )
-from jb_drf_auth.views.profile import ProfileViewSet
+from jb_drf_auth.views.profile import ProfilePictureUpdateView, ProfileViewSet
 from jb_drf_auth.views.register import RegisterView
+from jb_drf_auth.views.social_auth import (
+    SocialLinkView,
+    SocialLoginView,
+    SocialPrecheckView,
+    SocialUnlinkView,
+)
 from jb_drf_auth.views.user_admin import CreateStaffUserView, CreateSuperUserView
 
 __all__ = [
     "delete_account",
     "AccountUpdateView",
+    "AccountSocialAccountsView",
+    "EmailAvailabilityView",
+    "PhoneAvailabilityView",
+    "ContactVerificationRequestView",
+    "ContactVerificationVerifyView",
     "AccountConfirmEmailView",
     "ResendConfirmationEmailView",
     "BasicLoginView",
+    "MagicLinkConsumeView",
     "SwitchProfileView",
     "MeView",
     "RequestOtpCodeView",
@@ -29,7 +52,13 @@ __all__ = [
     "PasswordResetConfirmView",
     "PasswordResetRequestView",
     "ProfileViewSet",
+    "ProfilePictureUpdateView",
     "RegisterView",
+    "SocialLoginView",
+    "SocialPrecheckView",
+    "SocialLinkView",
+    "SocialUnlinkView",
     "CreateStaffUserView",
     "CreateSuperUserView",
+    "UsernameAvailabilityView",
 ]

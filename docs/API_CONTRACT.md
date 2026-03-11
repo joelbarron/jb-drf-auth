@@ -100,7 +100,8 @@ Request (mobile):
   "device": {
     "platform": "ios",
     "name": "iPhone",
-    "token": "push_token_optional"
+    "token": "device_identifier_optional",
+    "notification_token": "fcm_or_apns_token"
   }
 }
 ```
@@ -112,8 +113,203 @@ Success `200`:
 Common errors:
 
 - `400`: missing/invalid `device` when `client = "mobile"`.
+- `400` for missing `device.notification_token` only when `MOBILE_NOTIFICATION_TOKEN_REQUIRED=True`.
 - `401`: invalid credentials, inactive/unverified/deleted account.
 - `429`: throttled.
+
+### POST `/auth/login/social/`
+
+Social login via provider token:
+
+- OIDC `id_token` for `google`, `apple`.
+- Facebook `access_token` for `facebook`.
+
+Request (web):
+
+```json
+{
+  "provider": "google",
+  "id_token": "<oidc_id_token>",
+  "role": "DOCTOR",
+  "client": "web",
+  "terms_and_conditions_accepted": true
+}
+```
+
+Request (mobile):
+
+```json
+{
+  "provider": "google",
+  "id_token": "<oidc_id_token>",
+  "role": "DOCTOR",
+  "client": "mobile",
+  "terms_and_conditions_accepted": true,
+  "device": {
+    "platform": "ios",
+    "name": "iPhone",
+    "token": "device_identifier_optional",
+    "notification_token": "fcm_or_apns_token"
+  }
+}
+```
+
+Request (facebook):
+
+```json
+{
+  "provider": "facebook",
+  "access_token": "<facebook_user_access_token>",
+  "role": "DOCTOR",
+  "client": "web"
+}
+```
+
+Request (OIDC authorization code):
+
+```json
+{
+  "provider": "google",
+  "authorization_code": "<oauth_authorization_code>",
+  "redirect_uri": "https://your-app.com/auth/callback/google",
+  "code_verifier": "<pkce_code_verifier>",
+  "client_id": "<google-web-client-id>",
+  "role": "DOCTOR",
+  "client": "web"
+}
+```
+
+Success `200`:
+
+- Returns client-specific login payload with tokens.
+- Includes `social_provider`, `user_created`, `linked_existing_user`, `social_account_id`.
+
+Common errors:
+
+- `400`: unsupported provider, missing/invalid social settings, invalid request payload.
+- `401`: invalid/expired social token.
+- `429`: throttled.
+
+### POST `/auth/login/social/precheck/`
+
+Validate social identity and determine whether user already exists, without creating user,
+linking accounts, or returning JWTs.
+
+Request:
+
+Uses the same payload as `/auth/login/social/` (provider/client and token payload according to provider).
+
+Success `200`:
+
+```json
+{
+  "provider": "google",
+  "email": "user@example.com",
+  "email_verified": true,
+  "social_account_exists": false,
+  "linked_existing_user": true,
+  "user_exists": true,
+  "would_create_user": false,
+  "can_login": true
+}
+```
+
+Field semantics:
+
+- `social_account_exists`: social account is already linked by `provider + provider_user_id`.
+- `linked_existing_user`: no social link exists, but user exists by email (when `LINK_BY_EMAIL=true`).
+- `user_exists`: `social_account_exists || linked_existing_user`.
+- `would_create_user`: no user exists and `AUTO_CREATE_USER=true`.
+- `can_login`: login can proceed with current settings (`existing user/link` or `AUTO_CREATE_USER=true`).
+
+Common errors:
+
+- `400`: unsupported provider, invalid payload, provider token rejected.
+- `401`: provider token invalid/expired.
+- `429`: throttled.
+
+### POST `/auth/login/social/link/`
+
+Requires auth.
+
+Request example:
+
+```json
+{
+  "provider": "google",
+  "id_token": "<oidc_id_token>"
+}
+```
+
+Success `200`:
+
+```json
+{
+  "detail": "Social account linked successfully.",
+  "provider": "google",
+  "social_account_id": 15,
+  "created": true
+}
+```
+
+Common errors:
+
+- `400`: provider payload invalid or social account already linked to another user.
+- `401`: unauthenticated or invalid/expired provider token.
+- `429`: throttled.
+
+Example error (`400`):
+
+```json
+{
+  "detail": "This social account is already linked to another user.",
+  "code": "social_already_linked"
+}
+```
+
+Example error (`401`):
+
+```json
+{
+  "detail": "Social token is invalid or expired.",
+  "code": "social_invalid_token"
+}
+```
+
+### POST `/auth/login/social/unlink/`
+
+Requires auth.
+
+Request:
+
+```json
+{
+  "provider": "google"
+}
+```
+
+Success `200`:
+
+```json
+{
+  "detail": "Social account unlinked successfully.",
+  "provider": "google"
+}
+```
+
+Common errors:
+
+- `401`: unauthenticated.
+- `404`: user has no linked account for requested provider.
+
+Example error (`404`):
+
+```json
+{
+  "detail": "No linked social account found for this provider.",
+  "code": "social_not_found"
+}
+```
 
 ### POST `/auth/profile/switch/`
 
@@ -128,7 +324,8 @@ Request:
   "device": {
     "platform": "android",
     "name": "Pixel",
-    "token": "device_token"
+    "token": "device_identifier",
+    "notification_token": "fcm_or_apns_token"
   }
 }
 ```
@@ -139,6 +336,56 @@ Common errors:
 
 - `401`: unauthenticated.
 - `404`: profile not found / not owned by user.
+
+### PATCH `/auth/profile/picture/`
+
+Requires auth.
+
+Request:
+
+```json
+{
+  "profile": 10,
+  "picture": "<base64-image>"
+}
+```
+
+`profile` is optional. If omitted, backend uses default profile (or first profile).
+
+Success `200`:
+
+```json
+{
+  "detail": "Foto de perfil actualizada correctamente.",
+  "profile_id": 10
+}
+```
+
+Common errors:
+
+- `400`: invalid/missing image payload.
+- `401`: unauthenticated.
+- `404`: profile not found for current user.
+
+Example error (`400`):
+
+```json
+{
+  "picture": [
+    "No file was submitted."
+  ]
+}
+```
+
+Example error (`404` equivalent in validation payload):
+
+```json
+{
+  "profile": [
+    "Perfil no encontrado."
+  ]
+}
+```
 
 ### POST `/auth/token/refresh/`
 
@@ -187,7 +434,8 @@ Success `201`:
 ```json
 {
   "detail": "Código enviado exitosamente.",
-  "channel": "sms"
+  "channel": "sms",
+  "user_exist": true
 }
 ```
 
@@ -205,6 +453,7 @@ Request:
 {
   "email": "user@example.com",
   "code": "123456",
+  "role": "DOCTOR",
   "client": "web",
   "device": {
     "platform": "ios",
@@ -214,6 +463,7 @@ Request:
 ```
 
 `phone` can be used instead of `email`.
+`role` is optional and is used only when OTP flow auto-creates the user/profile.
 
 Success `200`: client-specific login payload with tokens.
 
@@ -401,6 +651,53 @@ Common errors:
 
 - `400`: validation/uniqueness errors.
 - `401`: unauthenticated.
+
+### GET `/auth/account/username-availability/?username=<value>`
+
+Public endpoint. Checks whether a username is available.
+
+Success `200`:
+
+```json
+{
+  "field": "username",
+  "value": "user1",
+  "available": false,
+  "detail": "El nombre de usuario ya esta en uso."
+}
+```
+
+Notes:
+
+- If authenticated and checking the current user's own username, it returns `available = true`.
+- `detail` is included only when the value is not available.
+
+Common errors:
+
+- `400`: missing/invalid `username`.
+
+### GET `/auth/account/email-availability/?email=<value>`
+
+Public endpoint. Checks whether an email is available.
+
+Success `200`:
+
+```json
+{
+  "field": "email",
+  "value": "user@example.com",
+  "available": true
+}
+```
+
+Notes:
+
+- If authenticated and checking the current user's own email, it returns `available = true`.
+- `detail` is included only when the value is not available.
+
+Common errors:
+
+- `400`: missing/invalid `email`.
 
 ### PUT `/auth/account/update/`
 
