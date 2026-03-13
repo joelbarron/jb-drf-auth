@@ -87,7 +87,7 @@ class PasswordResetService:
             )
             if raise_on_fail:
                 raise serializers.ValidationError(
-                    {"detail": _("No se pudo enviar el correo. Intenta mas tarde.")}
+                    {"detail": _("No se pudo enviar el correo. Intenta más tarde.")}
                 ) from exc
             return False
 
@@ -139,7 +139,7 @@ class PasswordResetService:
             )
             if raise_on_fail:
                 raise serializers.ValidationError(
-                    {"detail": _("No se pudo enviar el correo. Intenta mas tarde.")}
+                    {"detail": _("No se pudo enviar el correo. Intenta más tarde.")}
                 ) from exc
             return False
 

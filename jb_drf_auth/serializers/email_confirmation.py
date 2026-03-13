@@ -19,10 +19,10 @@ class EmailConfirmationSerializer(serializers.Serializer):
             uid = urlsafe_base64_decode(data["uid"]).decode()
             user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            raise serializers.ValidationError(_("Enlace invalido."))
+            raise serializers.ValidationError(_("Enlace inválido."))
 
         if not default_token_generator.check_token(user, data["token"]):
-            raise serializers.ValidationError(_("El token es invalido o ha expirado."))
+            raise serializers.ValidationError(_("El token es inválido o ha expirado."))
         data["user"] = user
         return data
 

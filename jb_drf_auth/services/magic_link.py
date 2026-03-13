@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 class MagicLinkDeliveryError(APIException):
     status_code = 503
-    default_detail = _("No se pudo enviar la liga de acceso. Intenta más tarde.")
+    default_detail = _("No se pudo enviar el enlace de acceso. Intenta más tarde.")
     default_code = "magic_link_delivery_error"
 
 
@@ -128,7 +128,7 @@ class MagicLinkService:
         frontend_url = str(get_setting("FRONTEND_URL") or "").strip()
         if not frontend_url:
             raise serializers.ValidationError(
-                {"detail": _("Configura FRONTEND_URL para enviar ligas de acceso por SMS.")}
+                {"detail": _("Configura FRONTEND_URL para enviar enlaces de acceso por SMS.")}
             )
 
         frontend_path = str(get_setting("MAGIC_LINK_FRONTEND_PATH") or "/sign-in").strip() or "/sign-in"
@@ -192,7 +192,7 @@ class MagicLinkService:
             raise MagicLinkDeliveryError() from exc
 
         return {
-            "detail": _("Liga de acceso enviada correctamente."),
+            "detail": _("Enlace de acceso enviado correctamente."),
             "sent": True,
             "channel": "sms",
             "phone": normalized_phone,
@@ -254,27 +254,27 @@ class MagicLinkService:
             payload = signing.loads(token, salt=cls.TOKEN_SALT, max_age=ttl_seconds)
         except signing.SignatureExpired as exc:
             logger.info("patient_magic_link_expired")
-            raise AuthenticationFailed(_("La liga de acceso expiró.")) from exc
+            raise AuthenticationFailed(_("El enlace de acceso expiró.")) from exc
         except signing.BadSignature as exc:
             logger.info("patient_magic_link_invalid")
-            raise AuthenticationFailed(_("La liga de acceso no es válida.")) from exc
+            raise AuthenticationFailed(_("El enlace de acceso no es válido.")) from exc
 
         jti = str(payload.get("jti") or "").strip()
         if not jti:
-            raise AuthenticationFailed(_("La liga de acceso no es válida."))
+            raise AuthenticationFailed(_("El enlace de acceso no es válido."))
 
         used_cache_key = f"{cls.USED_TOKEN_CACHE_PREFIX}:{jti}"
         if not cache.add(used_cache_key, "1", timeout=ttl_seconds):
             logger.info("patient_magic_link_already_used")
-            raise AuthenticationFailed(_("La liga de acceso ya fue utilizada."))
+            raise AuthenticationFailed(_("El enlace de acceso ya fue utilizado."))
 
         user_id = int(payload.get("sub") or 0)
         if not user_id:
-            raise AuthenticationFailed(_("La liga de acceso no es válida."))
+            raise AuthenticationFailed(_("El enlace de acceso no es válido."))
 
         user = User.objects.filter(id=user_id).first()
         if not user:
-            raise AuthenticationFailed(_("No se encontró una cuenta para esta liga de acceso."))
+            raise AuthenticationFailed(_("No se encontró una cuenta para este enlace de acceso."))
         if not getattr(user, "is_active", True):
             raise AuthenticationFailed(_("Esta cuenta está inactiva."))
         if getattr(user, "deleted", None):
@@ -291,7 +291,7 @@ class MagicLinkService:
             raise AuthenticationFailed(_("No se encontró un perfil válido para iniciar sesión."))
 
         if expected_role and str(getattr(profile, "role", "") or "").strip().upper() != expected_role:
-            raise AuthenticationFailed(_("El perfil de esta liga no coincide con el rol esperado."))
+            raise AuthenticationFailed(_("El perfil de este enlace no coincide con el rol esperado."))
 
         if hasattr(user, "last_login"):
             user.last_login = timezone.now()

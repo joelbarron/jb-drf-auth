@@ -93,7 +93,7 @@ class _BaseAvailabilityView(APIView):
             elif self.field_name == "phone":
                 payload["detail"] = _("Ya existe un usuario con este teléfono.")
             elif self.field_name == "username":
-                payload["detail"] = _("El nombre de usuario ya esta en uso.")
+                payload["detail"] = _("El nombre de usuario ya está en uso.")
         return Response(payload, status=status.HTTP_200_OK)
 
 

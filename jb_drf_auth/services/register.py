@@ -26,9 +26,9 @@ class RegisterService:
             raise ValueError(_("Las contraseñas no coinciden."))
 
         if User.objects.filter(email=email).exists():
-            raise ValueError(_("El correo electrónico ya esta en uso."))
+            raise ValueError(_("El correo electrónico ya está en uso."))
         if username and User.objects.filter(username=username).exists():
-            raise ValueError(_("El nombre de usuario ya esta en uso."))
+            raise ValueError(_("El nombre de usuario ya está en uso."))
 
         result = AccountProvisioningService.provision_account(
             email=email,
