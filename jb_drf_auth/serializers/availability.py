@@ -25,5 +25,5 @@ def unavailable_detail(field_name: str) -> str:
     if field_name == "email":
         return str(_("Ya existe un usuario con este correo."))
     if field_name == "username":
-        return str(_("El nombre de usuario ya esta en uso."))
+        return str(_("El nombre de usuario ya está en uso."))
     return str(_("Valor no disponible."))

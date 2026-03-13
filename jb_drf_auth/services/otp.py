@@ -24,7 +24,7 @@ User = get_user_model()
 
 class SmsDeliveryError(APIException):
     status_code = 503
-    default_detail = _("No se pudo enviar el codigo. Intenta mas tarde.")
+    default_detail = _("No se pudo enviar el código. Intenta más tarde.")
     default_code = "sms_delivery_error"
 
 
@@ -74,7 +74,7 @@ class OtpService:
         if latest and latest.last_sent_at:
             seconds_since = (now - latest.last_sent_at).total_seconds()
             if seconds_since < cooldown_seconds:
-                raise Throttled(detail=_("Debes esperar antes de solicitar otro codigo."))
+                raise Throttled(detail=_("Debes esperar antes de solicitar otro código."))
 
         if channel == "sms":
             try:
@@ -156,7 +156,7 @@ class OtpService:
 
         otp = otp.order_by("-id").first()
         if not otp:
-            raise AuthenticationFailed(_("Codigo invalido o expirado."))
+            raise AuthenticationFailed(_("Código inválido o expirado."))
 
         max_attempts = get_setting("OTP_MAX_ATTEMPTS")
         if otp.attempts >= max_attempts:
@@ -165,7 +165,7 @@ class OtpService:
         if otp.code != code:
             otp.attempts += 1
             otp.save(update_fields=["attempts"])
-            raise AuthenticationFailed(_("Codigo invalido o expirado."))
+            raise AuthenticationFailed(_("Código inválido o expirado."))
 
         otp.is_used = True
         otp.save(update_fields=["is_used"])

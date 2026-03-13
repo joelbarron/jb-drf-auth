@@ -107,7 +107,7 @@ class AccountDeletionService:
             if not has_other_active:
                 raise DeletionBlockedError(
                     code="profile_is_last_active",
-                    detail=_("No se puede eliminar el ultimo perfil activo."),
+                    detail=_("No se puede eliminar el último perfil activo."),
                 )
 
         handler_result = cls._run_handlers(
@@ -148,7 +148,7 @@ class AccountDeletionService:
         if not confirmation:
             raise DeletionBlockedError(
                 code="confirmation_required",
-                detail=_("Debe confirmar la eliminacion de la cuenta."),
+                detail=_("Debe confirmar la eliminación de la cuenta."),
             )
 
         with transaction.atomic():

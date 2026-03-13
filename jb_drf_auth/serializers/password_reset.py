@@ -21,7 +21,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
     def validate(self, data):
         if data["new_password"] != data["new_password_confirm"]:
-            raise serializers.ValidationError(_("Las contrasenas no coinciden."))
+            raise serializers.ValidationError(_("Las contraseñas no coinciden."))
         return data
 
     def save(self):
@@ -31,7 +31,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
             new_password=self.validated_data["new_password"],
         )
         if not success:
-            raise serializers.ValidationError(_("Token invalido o expirado."))
+            raise serializers.ValidationError(_("Token inválido o expirado."))
 
 
 class PasswordChangeSerializer(serializers.Serializer):
@@ -41,7 +41,7 @@ class PasswordChangeSerializer(serializers.Serializer):
 
     def validate(self, data):
         if data["new_password"] != data["new_password_confirm"]:
-            raise serializers.ValidationError(_("Las contrasenas no coinciden."))
+            raise serializers.ValidationError(_("Las contraseñas no coinciden."))
         return data
 
     def save(self, **kwargs):
@@ -52,4 +52,4 @@ class PasswordChangeSerializer(serializers.Serializer):
             new_password=self.validated_data["new_password"],
         )
         if not success:
-            raise serializers.ValidationError({"old_password": _("Contrasena actual incorrecta.")})
+            raise serializers.ValidationError({"old_password": _("Contraseña actual incorrecta.")})

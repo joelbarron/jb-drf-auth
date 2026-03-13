@@ -2,6 +2,6 @@ Bienvenido a Mentalysis
 
 Hola {{ user_email }},
 
-Tu cuenta se creo correctamente y ya puedes iniciar sesion en la plataforma.
+Tu cuenta se creó correctamente y ya puedes iniciar sesión en la plataforma.
 
 Si no reconoces esta actividad, contacta soporte.

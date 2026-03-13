@@ -49,7 +49,7 @@ class PasswordResetConfirmView(APIView):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response({"detail": _("Contrasena restablecida con exito.")}, status=status.HTTP_200_OK)
+        return Response({"detail": _("Contraseña restablecida con éxito.")}, status=status.HTTP_200_OK)
 
 
 class PasswordChangeView(APIView):
@@ -59,4 +59,4 @@ class PasswordChangeView(APIView):
         serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response({"detail": _("Contrasena actualizada con exito.")}, status=status.HTTP_200_OK)
+        return Response({"detail": _("Contraseña actualizada con éxito.")}, status=status.HTTP_200_OK)

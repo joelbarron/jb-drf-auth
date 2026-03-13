@@ -130,12 +130,12 @@ class MeService:
 
                     device = device_model.objects.filter(token=device_token).first()
                     if device is None:
-                        raise NotFound(_("No se encontro el dispositivo con el token proporcionado."))
+                        raise NotFound(_("No se encontró el dispositivo con el token proporcionado."))
                 else:
                     raise serializers.ValidationError(
-                        {"device": _("Datos del dispositivo requeridos para cliente movil.")}
+                        {"device": _("Datos del dispositivo requeridos para cliente móvil.")}
                     )
 
             return MeService.get_me_mobile(user=user, profile=profile, tokens=None)
 
-        raise serializers.ValidationError({"detail": _("Parametro 'client' invalido")})
+        raise serializers.ValidationError({"detail": _("Parámetro 'client' inválido.")})

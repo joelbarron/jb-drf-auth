@@ -137,7 +137,7 @@ class ContactVerificationService:
 
         otp = otp_qs.order_by("-id").first()
         if not otp:
-            raise AuthenticationFailed(_("Codigo invalido o expirado."))
+            raise AuthenticationFailed(_("Código inválido o expirado."))
 
         max_attempts = int(get_setting("OTP_MAX_ATTEMPTS") or 5)
         if int(getattr(otp, "attempts", 0) or 0) >= max_attempts:
@@ -146,7 +146,7 @@ class ContactVerificationService:
         if str(getattr(otp, "code", "")).strip() != otp_code:
             otp.attempts = int(getattr(otp, "attempts", 0) or 0) + 1
             otp.save(update_fields=["attempts"])
-            raise AuthenticationFailed(_("Codigo invalido o expirado."))
+            raise AuthenticationFailed(_("Código inválido o expirado."))
 
         otp.is_used = True
         otp.save(update_fields=["is_used"])

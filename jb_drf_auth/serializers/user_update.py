@@ -37,7 +37,7 @@ def validate_contact_change_proofs(instance, attrs):
         phone_proof = attrs.get("phone_verification_proof_token")
         if not phone_proof:
             raise serializers.ValidationError(
-                {"phone_verification_proof_token": _("Debes validar el telefono con OTP antes de guardarlo.")}
+                {"phone_verification_proof_token": _("Debes validar el teléfono con OTP antes de guardarlo.")}
             )
         ContactVerificationService.verify_proof_token(
             phone_proof,
@@ -82,14 +82,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         user_model = self.Meta.model
         instance = self.instance
         if value and user_model.objects.filter(username=value).exclude(pk=instance.pk).exists():
-            raise serializers.ValidationError(_("El nombre de usuario ya esta en uso."))
+            raise serializers.ValidationError(_("El nombre de usuario ya está en uso."))
         return value
 
     def validate_phone(self, value):
         user_model = self.Meta.model
         instance = self.instance
         if value and user_model.objects.filter(phone=value).exclude(pk=instance.pk).exists():
-            raise serializers.ValidationError(_("El telefono ya esta en uso."))
+            raise serializers.ValidationError(_("El teléfono ya está en uso."))
         return value
 
     def validate(self, attrs):
