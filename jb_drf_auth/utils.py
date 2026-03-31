@@ -44,6 +44,21 @@ def get_device_model_cls():
     return apps.get_model(app_label, model_name)
 
 
+def get_notification_model_cls():
+    model_path = get_setting("NOTIFICATION_MODEL")
+    if not model_path:
+        raise RuntimeError("Missing setting: JB_DRF_AUTH_NOTIFICATION_MODEL = 'app_label.ModelName'")
+
+    try:
+        app_label, model_name = model_path.split(".")
+    except ValueError as exc:
+        raise RuntimeError(
+            "Invalid JB_DRF_AUTH_NOTIFICATION_MODEL format. Expected 'app_label.ModelName'"
+        ) from exc
+
+    return apps.get_model(app_label, model_name)
+
+
 def get_otp_model_cls():
     model_path = get_setting("OTP_MODEL")
     if not model_path:

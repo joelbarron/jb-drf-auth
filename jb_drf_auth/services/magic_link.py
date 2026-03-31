@@ -17,6 +17,7 @@ from rest_framework.exceptions import APIException, AuthenticationFailed
 
 from jb_drf_auth.conf import get_setting
 from jb_drf_auth.services.client import ClientService
+from jb_drf_auth.services.profile_mirror import ProfileRoleMirrorService
 from jb_drf_auth.services.tokens import TokensService
 from jb_drf_auth.utils import (
     get_profile_model_cls,
@@ -292,6 +293,8 @@ class MagicLinkService:
 
         if expected_role and str(getattr(profile, "role", "") or "").strip().upper() != expected_role:
             raise AuthenticationFailed(_("El perfil de este enlace no coincide con el rol esperado."))
+
+        ProfileRoleMirrorService.autocure_for_profile(profile)
 
         if hasattr(user, "last_login"):
             user.last_login = timezone.now()

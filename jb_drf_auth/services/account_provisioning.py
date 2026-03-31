@@ -9,6 +9,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed, Throttled
 
 from jb_drf_auth.conf import get_setting
+from jb_drf_auth.services.profile_mirror import ProfileRoleMirrorService
 from jb_drf_auth.utils import get_otp_model_cls, get_profile_model_cls, normalize_phone_number
 
 
@@ -327,6 +328,7 @@ class AccountProvisioningService:
         profile = profile_model.objects.create(
             **cls._build_profile_kwargs(user=user, role=role, profile_data=profile_data)
         )
+        ProfileRoleMirrorService.ensure_counterpart(profile, create_missing=True)
 
         verification_result = {
             "requested": False,

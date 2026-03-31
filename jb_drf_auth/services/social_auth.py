@@ -13,6 +13,7 @@ from jb_drf_auth.conf import get_setting, get_social_settings
 from jb_drf_auth.exceptions import SocialAuthError
 from jb_drf_auth.services.client import ClientService
 from jb_drf_auth.services.email_confirmation import EmailConfirmationService
+from jb_drf_auth.services.profile_mirror import ProfileRoleMirrorService
 from jb_drf_auth.services.tokens import TokensService
 from jb_drf_auth.utils import (
     get_profile_model_cls,
@@ -98,13 +99,14 @@ class SocialAuthService:
             user.save()
 
         profile_model = get_profile_model_cls()
-        profile_model.objects.create(
+        profile = profile_model.objects.create(
             user=user,
             first_name=identity.first_name,
             last_name_1=identity.last_name_1,
             role=role or get_setting("DEFAULT_PROFILE_ROLE"),
             is_default=True,
         )
+        ProfileRoleMirrorService.ensure_counterpart(profile, create_missing=True)
         logger.info(
             "social_user_created provider=%s user_id=%s has_email=%s",
             identity.provider,
@@ -249,6 +251,7 @@ class SocialAuthService:
                 role=role or get_setting("DEFAULT_PROFILE_ROLE"),
                 is_default=True,
             )
+            ProfileRoleMirrorService.ensure_counterpart(profile, create_missing=True)
 
         SocialAuthService._sync_profile_picture(profile, identity.picture_url)
 

@@ -3,6 +3,7 @@ from rest_framework.exceptions import NotFound
 from django.utils.translation import gettext as _
 
 from jb_drf_auth.conf import get_setting
+from jb_drf_auth.services.profile_mirror import ProfileRoleMirrorService
 from jb_drf_auth.serializers.profile import ProfileSerializer
 from jb_drf_auth.serializers.user import UserSerializer
 from jb_drf_auth.utils import get_device_model_cls, get_profile_model_cls
@@ -110,6 +111,8 @@ class MeService:
             profile = profile_model.objects.get(id=profile_id)
         except profile_model.DoesNotExist:
             raise NotFound(_("Perfil no encontrado."))
+
+        ProfileRoleMirrorService.autocure_for_profile(profile)
 
         if client == "web":
             return MeService.get_me_web(

@@ -4,6 +4,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
 from safedelete.models import SafeDeleteModel, SOFT_DELETE
 
@@ -297,6 +298,47 @@ class AbstractJbDevice(AbstractSafeDeleteModel, AbstractTimeStampedModel):
 
     def __str__(self):
         return f"{self.platform} {self.name}".strip()
+
+
+class AbstractJbNotification(models.Model):
+    """
+    Abstract base for in-app notifications.
+    """
+
+    class Channel(models.TextChoices):
+        IN_APP = "IN_APP", "In-app only"
+        PUSH = "PUSH", "Push only"
+        BOTH = "BOTH", "In-app + push"
+
+    profile = models.ForeignKey(
+        get_setting("PROFILE_MODEL") or "authentication.Profile",
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        db_index=True,
+    )
+    type = models.CharField(max_length=64, db_index=True)
+    title = models.CharField(max_length=255)
+    body = models.TextField(blank=True, default="")
+    data = models.JSONField(default=dict, blank=True)
+    action_path = models.CharField(max_length=300, blank=True, null=True)
+    channel = models.CharField(max_length=20, choices=Channel.choices, default=Channel.BOTH)
+    sent_at = models.DateTimeField(default=timezone.now, db_index=True)
+    read_at = models.DateTimeField(blank=True, null=True, db_index=True)
+    dedupe_key = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+
+    class Meta:
+        abstract = True
+        verbose_name = "Notification"
+        verbose_name_plural = "Notifications"
+        indexes = [
+            models.Index(fields=["profile", "read_at"]),
+            models.Index(fields=["profile", "sent_at"]),
+            models.Index(fields=["profile", "type"]),
+            models.Index(fields=["profile", "dedupe_key"]),
+        ]
+
+    def __str__(self):
+        return f"Notification[{self.id}] profile={self.profile_id} type={self.type}"
 
 
 class AbstractJbOtpCode(AbstractSafeDeleteModel, AbstractTimeStampedModel):

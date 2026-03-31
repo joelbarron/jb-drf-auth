@@ -16,6 +16,9 @@ from jb_drf_auth.views import (
     CreateStaffUserView,
     CreateSuperUserView,
     MeView,
+    NotificationBroadcastView,
+    NotificationInboxViewSet,
+    NotificationSendView,
     PasswordChangeView,
     PasswordResetConfirmView,
     PasswordResetRequestView,
@@ -37,6 +40,7 @@ from jb_drf_auth.views import (
 
 router = DefaultRouter()
 router.register(r"profiles", ProfileViewSet, basename="profiles")
+router.register(r"notifications", NotificationInboxViewSet, basename="notifications")
 
 urlpatterns = [
     path("admin/create-superuser/", CreateSuperUserView.as_view(), name="create_superuser"),
@@ -69,6 +73,8 @@ urlpatterns = [
     path("account/username-availability/", UsernameAvailabilityView.as_view()),
     path("account/contact-verification/request/", ContactVerificationRequestView.as_view()),
     path("account/contact-verification/verify/", ContactVerificationVerifyView.as_view()),
+    path("notifications/send/", NotificationSendView.as_view()),
+    path("notifications/broadcast/", NotificationBroadcastView.as_view()),
     path("account/delete/", delete_account),
     path("", include(router.urls)),
 ]

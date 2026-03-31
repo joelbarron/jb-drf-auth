@@ -5,6 +5,7 @@ from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 
 from jb_drf_auth.image_utils import optimize_profile_picture
+from jb_drf_auth.services.profile_mirror import ProfileRoleMirrorService
 from jb_drf_auth.utils import get_profile_model_cls
 
 
@@ -27,13 +28,25 @@ class ProfileSerializer(serializers.ModelSerializer):
         user = self.context["request"].user
         if not user.is_authenticated:
             raise serializers.ValidationError(_("Debes estar autenticado para crear un perfil."))
+        if ProfileRoleMirrorService.is_enabled():
+            raise serializers.ValidationError(
+                {"detail": _("No puedes crear perfiles manualmente mientras el mirroring de perfiles está habilitado.")}
+            )
         validated_data["user"] = user
-        return super().create(validated_data)
+        profile = super().create(validated_data)
+        ProfileRoleMirrorService.ensure_counterpart(profile, create_missing=True)
+        return profile
 
     def update(self, instance, validated_data):
         user = self.context["request"].user
         if user.is_authenticated and user == instance.user:
-            return super().update(instance, validated_data)
+            changed_fields = set(validated_data.keys())
+            profile = super().update(instance, validated_data)
+            ProfileRoleMirrorService.sync_profile(
+                profile,
+                changed_fields=changed_fields,
+            )
+            return profile
         raise serializers.ValidationError(_("Solo puedes actualizar tu propio perfil."))
 
     def delete(self, instance):
@@ -74,4 +87,5 @@ class ProfilePictureUpdateSerializer(serializers.Serializer):
         optimized_picture = optimize_profile_picture(self.validated_data["picture"])
         profile.picture = optimized_picture
         profile.save()
+        ProfileRoleMirrorService.sync_profile(profile, changed_fields={"picture"})
         return profile

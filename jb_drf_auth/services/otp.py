@@ -8,6 +8,7 @@ from rest_framework.exceptions import APIException, AuthenticationFailed, Thrott
 from jb_drf_auth.conf import get_setting
 from jb_drf_auth.services.client import ClientService
 from jb_drf_auth.services.email_confirmation import EmailConfirmationService
+from jb_drf_auth.services.profile_mirror import ProfileRoleMirrorService
 from jb_drf_auth.services.tokens import TokensService
 from jb_drf_auth.utils import (
     get_otp_model_cls,
@@ -190,11 +191,12 @@ class OtpService:
             user_created = True
 
             profile_model = get_profile_model_cls()
-            profile_model.objects.create(
+            profile = profile_model.objects.create(
                 user=user,
                 role=role or get_setting("DEFAULT_PROFILE_ROLE"),
                 is_default=True,
             )
+            ProfileRoleMirrorService.ensure_counterpart(profile, create_missing=True)
 
         update_fields = []
         if not getattr(user, "is_verified", True):

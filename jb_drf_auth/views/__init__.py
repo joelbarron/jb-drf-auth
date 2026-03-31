@@ -16,6 +16,11 @@ from jb_drf_auth.views.email_confirmation import (
 )
 from jb_drf_auth.views.login import BasicLoginView, MagicLinkConsumeView, SwitchProfileView
 from jb_drf_auth.views.me import MeView
+from jb_drf_auth.views.notification import (
+    NotificationBroadcastView,
+    NotificationInboxViewSet,
+    NotificationSendView,
+)
 from jb_drf_auth.views.otp import RequestOtpCodeView, VerifyOtpCodeView
 from jb_drf_auth.views.password_reset import (
     PasswordChangeView,
@@ -46,6 +51,9 @@ __all__ = [
     "MagicLinkConsumeView",
     "SwitchProfileView",
     "MeView",
+    "NotificationSendView",
+    "NotificationBroadcastView",
+    "NotificationInboxViewSet",
     "RequestOtpCodeView",
     "VerifyOtpCodeView",
     "PasswordChangeView",

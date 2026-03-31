@@ -6,6 +6,7 @@ from django.utils.translation import gettext as _
 from jb_drf_auth.backends import EmailOrUsernameModelBackend
 from jb_drf_auth.conf import get_setting
 from jb_drf_auth.services.client import ClientService
+from jb_drf_auth.services.profile_mirror import ProfileRoleMirrorService
 from jb_drf_auth.services.tokens import TokensService
 
 
@@ -45,6 +46,7 @@ class LoginService:
 
         LoginService._touch_last_login(user)
         profile = user.get_default_profile()
+        ProfileRoleMirrorService.autocure_for_profile(profile)
         tokens = TokensService.get_tokens_for_user(user=user, profile=profile)
         return ClientService.response_for_client(
             normalized_client, user, profile, tokens, device_data
@@ -62,5 +64,6 @@ class LoginService:
             raise NotFound(_("Perfil no encontrado o no pertenece al usuario."))
 
         LoginService._touch_last_login(user)
+        ProfileRoleMirrorService.autocure_for_profile(profile)
         tokens = TokensService.get_tokens_for_user(user, profile)
         return ClientService.response_for_client(client, user, profile, tokens, device_data)
