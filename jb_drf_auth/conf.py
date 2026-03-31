@@ -3,6 +3,7 @@ from django.conf import settings
 DEFAULTS = {
     "PROFILE_MODEL": None,  # required: "accounts.Profile"
     "DEVICE_MODEL": None,  # required for mobile flows: "accounts.Device"
+    "NOTIFICATION_MODEL": None,  # optional: "app_label.Notification"
     "OTP_MODEL": None,  # required for otp flows: "accounts.OtpCode"
     "AUTHENTICATION_TYPE": "email",  # "email", "username", "both"
     "CLIENT_CHOICES": ("web", "mobile"),
@@ -47,6 +48,20 @@ DEFAULTS = {
     "ACCOUNT_PROVISION_VERIFICATION_CHANNEL": "auto",
     "ACCOUNT_PROVISION_ALLOW_VERIFICATION_FALLBACK": True,
     "ACCOUNT_PROVISION_VERIFICATION_RAISE_ON_FAIL": False,
+    "PROFILE_ROLE_MIRROR": {
+        "ENABLED": False,
+        "ROLE_PAIRS": (),
+        "SYNC_FIELDS": (
+            "first_name",
+            "last_name_1",
+            "last_name_2",
+            "birthday",
+            "gender",
+            "picture",
+            "label",
+        ),
+        "AUTOCURE_ON_AUTH_EVENTS": True,
+    },
     "SMS_PROVIDER": "jb_drf_auth.providers.aws_sns.AwsSnsSmsProvider",
     "AWS_REGION": None,
     "AWS_ACCESS_KEY_ID": None,

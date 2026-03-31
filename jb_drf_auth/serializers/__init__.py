@@ -14,6 +14,12 @@ from jb_drf_auth.serializers.email_confirmation import (
 )
 from jb_drf_auth.serializers.login import BasicLoginSerializer, SwitchProfileSerializer
 from jb_drf_auth.serializers.magic_link import MagicLinkConsumeSerializer
+from jb_drf_auth.serializers.notification import (
+    NotificationBroadcastSerializer,
+    NotificationInboxSerializer,
+    NotificationPushTokenUpsertSerializer,
+    NotificationSendSerializer,
+)
 from jb_drf_auth.serializers.otp import OtpCodeRequestSerializer, OtpCodeVerifySerializer
 from jb_drf_auth.serializers.password_reset import (
     PasswordChangeSerializer,
@@ -43,6 +49,10 @@ __all__ = [
     "ResendConfirmationEmailSerializer",
     "BasicLoginSerializer",
     "MagicLinkConsumeSerializer",
+    "NotificationSendSerializer",
+    "NotificationBroadcastSerializer",
+    "NotificationInboxSerializer",
+    "NotificationPushTokenUpsertSerializer",
     "SwitchProfileSerializer",
     "OtpCodeRequestSerializer",
     "OtpCodeVerifySerializer",
