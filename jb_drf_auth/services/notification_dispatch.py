@@ -66,11 +66,28 @@ class NotificationDispatchService:
 
         sent = 0
         skipped = 0
+        sent_push = 0
+        sent_in_app_only = 0
         notifications = []
         timestamp_seed = int(time.time() * 1000)
         dedupe_prefix = (dedupe_key_prefix or "").strip() or f"broadcast:{timestamp_seed}"
+        normalized_channel = str(channel or "").strip() or NotificationService._channel_value("BOTH")
+        push_channels = {
+            NotificationService._channel_value("BOTH"),
+            NotificationService._channel_value("PUSH"),
+        }
+        in_app_channel = NotificationService._channel_value("IN_APP")
+        users_with_push_dispatch: set[int] = set()
 
         for profile in queryset.iterator():
+            effective_channel = normalized_channel
+            profile_user_id = getattr(profile, "user_id", None)
+            if effective_channel in push_channels and profile_user_id is not None:
+                if profile_user_id in users_with_push_dispatch:
+                    effective_channel = in_app_channel
+                else:
+                    users_with_push_dispatch.add(profile_user_id)
+
             try:
                 notification = NotificationService.emit(
                     profile=profile,
@@ -79,11 +96,15 @@ class NotificationDispatchService:
                     body=body,
                     data=data,
                     action_path=action_path,
-                    channel=channel,
+                    channel=effective_channel,
                     dedupe_key=f"{dedupe_prefix}:{profile.id}",
                 )
                 notifications.append(notification)
                 sent += 1
+                if effective_channel in push_channels:
+                    sent_push += 1
+                else:
+                    sent_in_app_only += 1
             except Exception:
                 skipped += 1
 
@@ -91,5 +112,7 @@ class NotificationDispatchService:
             "sent": sent,
             "skipped": skipped,
             "total": sent + skipped,
+            "sent_push": sent_push,
+            "sent_in_app_only": sent_in_app_only,
             "notification_ids": [getattr(item, "id", None) for item in notifications],
         }

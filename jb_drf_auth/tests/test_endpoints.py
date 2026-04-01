@@ -30,6 +30,7 @@ from jb_drf_auth.views.password_reset import (
     PasswordResetConfirmView,
     PasswordResetRequestView,
 )
+from jb_drf_auth.views.notification import NotificationInboxViewSet
 from jb_drf_auth.views.profile import ProfilePictureUpdateView, ProfileViewSet
 from jb_drf_auth.views.register import RegisterView
 from jb_drf_auth.views.social_auth import (
@@ -230,6 +231,7 @@ class EndpointTests(unittest.TestCase):
         device_model = MagicMock()
         get_device_model_cls.return_value = device_model
         get_me_mobile.return_value = {"ok": True}
+        device_model.objects.update_or_create.return_value = (MagicMock(pk=501), False)
 
         request = self.factory.post(
             "/auth/login/basic/",
@@ -257,6 +259,7 @@ class EndpointTests(unittest.TestCase):
                 "notification_token": None,
             },
         )
+        device_model.objects.filter.assert_not_called()
 
     @patch("jb_drf_auth.services.client.MeService.get_me_mobile")
     @patch("jb_drf_auth.services.client.get_device_model_cls")
@@ -276,6 +279,11 @@ class EndpointTests(unittest.TestCase):
         device_model = MagicMock()
         get_device_model_cls.return_value = device_model
         get_me_mobile.return_value = {"ok": True}
+        registered_device = MagicMock(pk=777)
+        device_model.objects.update_or_create.return_value = (registered_device, False)
+        dedupe_qs = MagicMock()
+        device_model.objects.filter.return_value = dedupe_qs
+        dedupe_qs.exclude.return_value = dedupe_qs
 
         request = self.factory.post(
             "/auth/login/basic/",
@@ -304,6 +312,9 @@ class EndpointTests(unittest.TestCase):
                 "notification_token": "push-123",
             },
         )
+        device_model.objects.filter.assert_called_once_with(notification_token="push-123")
+        dedupe_qs.exclude.assert_called_once_with(pk=777)
+        dedupe_qs.update.assert_called_once_with(notification_token=None)
 
     @patch("jb_drf_auth.views.login.SwitchProfileSerializer")
     @patch("jb_drf_auth.views.login.LoginService.switch_profile")
@@ -381,6 +392,50 @@ class EndpointTests(unittest.TestCase):
         response = SocialLoginView.as_view()(request)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(response.data.get("code"), "social_invalid_token")
+
+    @patch("jb_drf_auth.views.notification.get_device_model_cls")
+    def test_push_token_upsert_endpoint_uses_shared_device_registration(
+        self,
+        get_device_model_cls,
+    ):
+        device_model = MagicMock()
+        device = MagicMock(id=42, pk=42, notification_token="ExponentPushToken[token-1]")
+        get_device_model_cls.return_value = device_model
+        device_model.objects.update_or_create.return_value = (device, False)
+        dedupe_qs = MagicMock()
+        device_model.objects.filter.return_value = dedupe_qs
+        dedupe_qs.exclude.return_value = dedupe_qs
+
+        request = self.factory.post(
+            "/auth/notifications/push-token/",
+            {
+                "device_token": "device-1",
+                "notification_token": "ExponentPushToken[token-1]",
+                "platform": "ios",
+                "name": "iPhone",
+            },
+            format="json",
+        )
+        force_authenticate(request, user=self.user)
+        view = NotificationInboxViewSet.as_view({"post": "push_token"})
+        response = view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        device_model.objects.update_or_create.assert_called_once_with(
+            user=self.user,
+            token="device-1",
+            defaults={
+                "platform": "ios",
+                "name": "iPhone",
+                "notification_token": "ExponentPushToken[token-1]",
+            },
+        )
+        device_model.objects.filter.assert_called_once_with(
+            notification_token="ExponentPushToken[token-1]"
+        )
+        dedupe_qs.exclude.assert_called_once_with(pk=42)
+        dedupe_qs.update.assert_called_once_with(notification_token=None)
+        self.assertEqual(response.data["device_id"], 42)
 
     @patch("jb_drf_auth.services.social_auth.SocialAuthService.precheck")
     def test_social_precheck_view_success(self, precheck):
