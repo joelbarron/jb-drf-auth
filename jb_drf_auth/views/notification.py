@@ -16,6 +16,7 @@ from jb_drf_auth.serializers import (
     NotificationPushTokenUpsertSerializer,
     NotificationSendSerializer,
 )
+from jb_drf_auth.services.client import ClientService
 from jb_drf_auth.services.notification_dispatch import NotificationDispatchService
 from jb_drf_auth.utils import get_device_model_cls, get_notification_model_cls, get_profile_model_cls
 
@@ -233,14 +234,13 @@ class NotificationInboxViewSet(viewsets.ModelViewSet):
         payload = serializer.validated_data
 
         device_model = get_device_model_cls()
-        device, _created = device_model.objects.update_or_create(
+        device, _created = ClientService.upsert_mobile_device(
+            device_model=device_model,
             user=request.user,
             token=payload["device_token"],
-            defaults={
-                "platform": payload.get("platform") or "Unknown Platform",
-                "name": payload.get("name") or "Unknown Device",
-                "notification_token": payload.get("notification_token"),
-            },
+            platform=payload.get("platform") or "Unknown Platform",
+            name=payload.get("name") or "Unknown Device",
+            notification_token=payload.get("notification_token"),
         )
         return Response(
             {
