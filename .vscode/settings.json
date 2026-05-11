@@ -7,7 +7,9 @@
         "dist": true,
         "jb_drf_auth.egg-info": true,
         ".gitignore": true,
-        "LICENSE": true
+        "LICENSE": true,
+        ".pytest_cache": true,
+        ".ruff_cache": true,
     },
     "search.exclude": {
         "**/__pycache__": true,
